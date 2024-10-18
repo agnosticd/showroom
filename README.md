@@ -1,3 +1,3 @@
-# Ansible Collection - agnosticd.showroom_ocp
+# Ansible Collection - agnosticd.showroom
 
 Documentation for the collection.
