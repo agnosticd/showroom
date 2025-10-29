@@ -12,7 +12,7 @@
     f_lab_ui_url: "https://{{ showroom_host }}{{ f_port_suffix | default('') }}/{{ showroom_primary_path }}"
 
 - name: Output showroom view(s) URLs as userinfo and userdata
-  agnosticd_user_info:
+  agnosticd.core.agnosticd_user_info:
     msg:
       - "Your Lab URL: {{ f_lab_ui_url }}"
       - "Your Showroom URL: {{ f_lab_ui_url }}"

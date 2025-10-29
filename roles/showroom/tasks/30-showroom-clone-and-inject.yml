@@ -16,7 +16,7 @@
 
         - name: Set f_user_data
           set_fact:
-            f_user_data: "{{ lookup('agnosticd_user_data', '*') | from_yaml }}"
+            f_user_data: "{{ lookup('agnosticd.core.agnosticd_user_data', '*') | from_yaml }}"
 
         - name: Fetch antora.yml from the showroom content dir
           ansible.builtin.slurp:
