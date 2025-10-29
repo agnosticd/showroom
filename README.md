@@ -5,7 +5,6 @@ Collection for deploying and running Showroom. Includes an OpenShift workload ro
 ## Contents
 
 - `ocp4_workload_showroom`: Deploys Showroom to OpenShift via the `showroom-single-pod` Helm chart. Supports content-only, terminal (Wetty or in-cluster terminal pod), and multi-user modes. See `roles/ocp4_workload_showroom/README.adoc`.
-- `showroom`: Installs and runs Showroom on a host using Traefik; optional ACME TLS via ZeroSSL or Let’s Encrypt. See `roles/showroom/README.adoc`.
 
 ## Install
 

@@ -5,13 +5,13 @@
 * Deploys to your demo cluster or the shared cluster
 ** Deploying to your demo's openshift: <<your_openshift>>
 ** Deploying to our OCP 410 shared OCP Cluster: <<shared_cluster>>
-* One or multiple OpenShift users, autodetected.
-* Deploy the showroom helm chart https://github.com/rhpds/showroom-deployer/charts/showroom-single-pod
-* Supports deployment via helm cli (will be installed if not there).
+* Single- or multi-user deployments via variables.
+* Deploys the showroom chart https://github.com/rhpds/showroom-deployer/charts/showroom-single-pod
+* Uses Ansible modules (no local helm CLI required).
 * Supports multiple deployment options
 ** Just lab content
 ** Lab content and a Wetty terminal that can be configured to automatically ssh to a bastion
-** Lab content and a ttyd terminal - using available images for ocp/rosa/aro/etc
+** Lab content and an OpenShift terminal pod (images available for ocp/rosa/aro/etc)
 
 == Usage
 
@@ -61,7 +61,7 @@ It needs a bastion, afaict.
 
 Regardless of deployment type (below) showroom is always deployed using a Helm Chart whose source can be found at https://github.com/rhpds/showroom-deployer/charts/showroom-single-pod
 
-If newer charts are available than the default version in the workload (`1.0.0`) you will need to specify the version to use. If you want to use another chart (careful: it needs to be compatible) you can pick that, too.
+If newer charts are available than the default version in the workload (`^2.0.0`) you will need to specify the version to use. If you want to use another chart (careful: it needs to be compatible) you can pick that, too.
 +
 .Example
 [source,yaml]
@@ -73,18 +73,7 @@ ocp4_workload_showroom_chart_package_url: https://rhpds.github.io/showroom-deplo
 ocp4_workload_showroom_deployer_chart_name: showroom-single-pod
 
 # Pick the latest chart available from https://github.com/rhpds/showroom-deployer/releases
-ocp4_workload_showroom_deployer_chart_version: "1.0.0"
-----
-
-== Picking Deployment Type
-
-If you don't pick a deployment type the default is `helm` cli locally (on the bastion) If `helm` is not available it will be installed first.
-+
-.Example
-[source,yaml]
-----
-# How to deploy Showroom. Options are `helm`
-ocp4_workload_showroom_deployment_type: helm
+ocp4_workload_showroom_deployer_chart_version: "^2.0.0"
 ----
 
 == Show just lab instructions (whole window)
@@ -110,11 +99,11 @@ This is only possible for the `wetty` terminal.
 [source,yaml]
 ----
 - name: Provide installed bastion data
-  agnosticd_user_info:
+  agnosticd.core.agnosticd_user_info:
     data:
-      bastion_ssh_command: "ssh {{ remote_user }}@bastion.{{ guid }}.{{ azure_root_dns_zone }}"
+      bastion_ssh_command: "ssh {{ ansible_user }}@bastion.{{ guid }}.{{ azure_root_dns_zone }}"
       bastion_public_hostname: "bastion.{{ guid }}.{{ cluster_dns_zone }}"
-      bastion_ssh_user_name: "{{ remote_user }}"
+      bastion_ssh_user_name: "{{ ansible_user }}"
       bastion_ssh_password: "{{ generated_password }}"
 ----
 
@@ -128,7 +117,7 @@ ocp4_workload_showroom_terminal_type: wetty
 
 # Change the image if you want a different image. Otherwise this line is
 # the default
-ocp4_workload_showroom_wetty_image: docker.io/wettyoss/wetty:latest
+ocp4_workload_showroom_wetty_image: quay.io/rhpds/wetty:v2.5
 
 # Set auto login to true:
 ocp4_workload_showroom_wetty_ssh_bastion_login: true
@@ -143,7 +132,19 @@ Key based authentication is TODO
 
 Showroom also includes the capability to run the terminal in a pod rather than ssh-ing to the bastion. This enables use cases without bastions - and it also enables multi-user showroom deployments.
 
-Multi-user showroom is automatic - if the `user-data.yaml` has individual user data then showroom is automatically deployed in multi-user mode.
+Multi-user deployment is controlled via variables:
++
+.Example
+[source,yaml]
+----
+# Explicit per-user map (user -> credentials used by Wetty if enabled)
+ocp4_workload_showroom_users:
+  user1: {}
+  user2: {}
+
+# Or auto-generate N users (names user1..userN)
+num_users: 2
+----
 
 === Available terminal container images
 

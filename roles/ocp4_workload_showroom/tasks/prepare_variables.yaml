@@ -1,0 +1,75 @@
+---
+- name: Check for required variables
+  ansible.builtin.assert:
+    that:
+    - guid | default('') | length > 0
+    - ocp4_workload_showroom_content_git_repo | default('') | length > 0
+    quiet: true
+    fail_msg: Required variables (guid or ocp4_workload_showroom_content_git_repo) not defined
+
+- name: Initialize _showroom_user_data
+  ansible.builtin.set_fact:
+    _showroom_user_data: "{{ _showroom_user_data | default({}, true) }}"
+
+- name: Set showroom_user_data from bastion variables
+  when:
+  - bastion_ansible_host is defined
+  - bastion_ansible_user is defined
+  ansible.builtin.set_fact:
+    _showroom_user_data: >-
+      {{
+        _showroom_user_data | combine({
+          'bastion_public_hostname': bastion_ansible_host,
+          'bastion_ssh_user_name': bastion_ansible_user,
+          'bastion_ssh_password': bastion_ansible_ssh_pass,
+          'bastion_ssh_port': (bastion_ansible_port | default(22)),
+          'bastion_ssh_command': (
+            'ssh ' ~ (bastion_ansible_user | string) ~ '@' ~ (bastion_ansible_host | string) ~ ' -p ' ~ ((bastion_ansible_port | default(22)) | string)
+          )
+        }, recursive=True)
+      }}
+
+- name: Set multi-user overrides when provided
+  when:
+  - ocp4_workload_showroom_users | default({}) | length > 0
+  ansible.builtin.set_fact:
+    _showroom_user_data: "{{ _showroom_user_data | combine({'users': ocp4_workload_showroom_users}, recursive=True) }}"
+
+- name: Initialize generated users map
+  when:
+  - (ocp4_workload_showroom_users | default({}) | length == 0)
+  - (num_users | default(0) | int) > 0
+  ansible.builtin.set_fact:
+    _showroom_generated_users: {}
+
+- name: Generate users map from num_users
+  when:
+  - (ocp4_workload_showroom_users | default({}) | length == 0)
+  - (num_users | default(0) | int) > 0
+  ansible.builtin.set_fact:
+    _showroom_generated_users: "{{ _showroom_generated_users | combine({ ('user' ~ n | string): {} }) }}"
+  loop: "{{ range(1, num_users | int + 1) | list }}"
+  loop_control:
+    loop_var: n
+
+- name: Apply generated users map
+  when:
+  - (ocp4_workload_showroom_users | default({}) | length == 0)
+  - (num_users | default(0) | int) > 0
+  ansible.builtin.set_fact:
+    _showroom_user_data: "{{ _showroom_user_data | combine({'users': _showroom_generated_users}, recursive=True) }}"
+
+- name: Set fact _user_count
+  when: _showroom_user_data.users is defined
+  ansible.builtin.set_fact:
+    _user_count: "{{ _showroom_user_data['users'] | length }}"
+
+- name: Read user-info.yaml
+  delegate_to: localhost
+  ansible.builtin.slurp:
+    src: "{{ output_dir ~ '/user-info.yaml' }}"
+  register: r_user_info
+
+- name: Set fact for user info
+  ansible.builtin.set_fact:
+    _showroom_user_info: '{{ r_user_info.content | b64decode | from_yaml | default([], true) | join("\n") }}'
