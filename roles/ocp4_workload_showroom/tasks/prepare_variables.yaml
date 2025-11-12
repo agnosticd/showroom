@@ -7,13 +7,9 @@
     quiet: true
     fail_msg: Required variables (guid or ocp4_workload_showroom_content_git_repo) not defined
 
-- name: Initialize _showroom_user_data
+- name: Initialize and merge agnosticd_user_data into _showroom_user_data
   ansible.builtin.set_fact:
-    _showroom_user_data: "{{ _showroom_user_data | default({}, true) }}"
-
-- name: Merge agnosticd_user_data into _showroom_user_data (global)
-  ansible.builtin.set_fact:
-    _showroom_user_data: "{{ _showroom_user_data | combine((lookup('agnosticd_user_data', '*') | default({}, true)), recursive=True) }}"
+    _showroom_user_data: "{{ (_showroom_user_data | default({}, true)) | combine((lookup('agnosticd_user_data', '*') | default({}, true)), recursive=True) }}"
 
 - name: Set showroom_user_data from bastion variables
   when:
