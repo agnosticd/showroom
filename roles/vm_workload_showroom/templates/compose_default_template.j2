@@ -30,4 +30,8 @@ services:
   {{ fake_indent_op() | indent(2) }}
 
 {% endfor %}
-...
+
+networks:
+  default:
+    name: {{ showroom_podman_network | default('showroom_network') }}
+    external: true

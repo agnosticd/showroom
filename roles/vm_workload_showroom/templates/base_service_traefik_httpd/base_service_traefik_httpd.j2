@@ -25,9 +25,12 @@ reverse-proxy:
     - "--global.checknewversion=false"
     - "--global.sendanonymoususage=false"
     - "--providers.docker=true"
+    - "--providers.docker.endpoint=unix:///var/run/docker.sock"
     - "--providers.docker.exposedbydefault=false"
     - "--log.level=info"
     - "--accesslog=true"
+    - "--providers.docker.swarmmode=false"
+    - "--providers.docker.watch=true"
 {% if _provider == 'none' %}
     - "--entrypoints.web.address=:{{ showroom_http_port | default(80) }}"
 {% else %}
@@ -73,19 +76,20 @@ showroom:
   container_name: showroom
   hostname: showroom
   restart: always
+  environment:
+    ZT_UI_ENABLED: "true"
+    ZT_BUNDLE: "{{ showroom_ui_zero_bundle }}"
+    ANTORA_PLAYBOOK: "site.yml"
   volumes:
-{% if showroom_ui == "zero" %}
-    - "{{ showroom_user_content_dir }}:/usr/local/apache2/htdocs:z,ro"
-{% else %}
-    - "{{ showroom_user_content_dir }}/www:/usr/local/apache2/htdocs:z,ro"
-{% endif %}
+    - "{{ showroom_user_content_dir }}:/showroom/repo:z,ro"
+    - "{{ showroom_user_build_dir }}:/showroom/www:z"
   labels:
     - "traefik.enable=true"
-    - "traefik.http.services.showroom.loadbalancer.server.port=80"
+    - "traefik.http.services.showroom.loadbalancer.server.port=8000"
     - "traefik.http.routers.showroom.entrypoints={{ _entrypoint }}"
 {% if _provider != 'none' %}
     - "traefik.http.routers.showroom.tls.certresolver={{ _provider }}"
 {% endif %}
-    - "traefik.http.routers.showroom.rule=Host(`{{ showroom_host }}`) && PathPrefix(`/showroom`)"
-    - "traefik.http.routers.showroom.middlewares=showroom-stripprefix"
-    - "traefik.http.middlewares.showroom-stripprefix.stripprefix.prefixes=/showroom"
+    - "traefik.http.routers.showroom.rule=Host(`{{ showroom_host }}`) && PathPrefix(`/`)"
+    - "traefik.http.routers.showroom.service=showroom"
+    - "traefik.http.routers.showroom.priority=1"

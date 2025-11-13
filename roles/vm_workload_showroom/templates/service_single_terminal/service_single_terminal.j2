@@ -12,17 +12,17 @@ terminal-01:
 {% if showroom_enable_root_ssh %}
     - "--ssh-user=root"
 {% else %}
-    - "--ssh-user={{ showroom_ssh_username | default(f_user_data.default_ssh_username) | default(f_user_data.ssh_username) }}"
+    - "--ssh-user={{ showroom_ssh_username | default(f_user_data.get('default_ssh_username')) | default(f_user_data.get('ssh_username')) }}"
 {% endif %}
 {% if showroom_ssh_method == 'sshkey' %}
     - "--ssh-config={{ showroom_user_home_dir }}/.ssh/config"
     - "--ssh-key={{ showroom_user_home_dir }}/.ssh/id_{{ showroom_ssh_key_type }}"
     - "--ssh-auth=publickey"
 {% elif showroom_ssh_method == 'password' %}
-    - "--ssh-pass={{ showroom_ssh_password | default(f_user_data.default_ssh_password) | default(f_user_data.ssh_password) }}"
+    - "--ssh-pass={{ showroom_ssh_password | default(f_user_data.get('default_ssh_password')) | default(f_user_data.get('ssh_password')) }}"
 {% endif %}
-    - "--ssh-host={{ showroom_ssh_host | default(f_user_data.targethost) }}"
-    - "--ssh-port={{ showroom_ssh_port | default(f_user_data.targetport) | default(22) }}"
+    - "--ssh-host={{ showroom_ssh_host | default(f_user_data.get('targethost')) }}"
+    - "--ssh-port={{ showroom_ssh_port | default(f_user_data.get('targetport')) | default(22) }}"
     - "--allow-iframe=true"
   labels:
     - "traefik.enable=true"
@@ -36,3 +36,5 @@ terminal-01:
     - "traefik.http.routers.terminal.middlewares=testheader"
     - "traefik.http.middlewares.terminal-stripprefix.stripprefix.prefixes=/wetty"
     - "traefik.http.middlewares.testheader.headers.customrequestheaders.X-Content-Type-Options=false"
+    - "traefik.http.routers.terminal.service=terminal"
+    - "traefik.http.routers.terminal.priority=10"

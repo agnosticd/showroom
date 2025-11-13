@@ -28,15 +28,15 @@
       tags:
         - showroom-clone-and-inject
 
-    - name: Clone primary showroom repo and inject externals (vars, html templates)
-      when:
-        - "'codeserver' in showroom_tab_services"
-      ansible.builtin.include_tasks:
-        file: 32-showroom-codeserver.yml
-      tags:
-        - showroom-codeserver
+    # - name: Clone primary showroom repo and inject externals (vars, html templates)
+    #   when:
+    #     - "'codeserver' in showroom_tab_services"
+    #   ansible.builtin.include_tasks:
+    #     file: 32-showroom-codeserver.yml
+    #   tags:
+    #     - showroom-codeserver
 
-    - name: Render showroom to html if required
+    - name: Render antora content
       ansible.builtin.include_tasks:
         file: 40-showroom-render.yml
       tags:
@@ -48,13 +48,13 @@
       tags:
         - showroom-services
 
-    - name: Setup parasol for showroom when in showroom_tab_services
-      when:
-        - "'parasol' in showroom_tab_services"
-      ansible.builtin.include_tasks:
-        file: 52-showroom-parasol.yml
-      tags:
-        - showroom-parasol
+    # - name: Setup parasol for showroom when in showroom_tab_services
+    #   when:
+    #     - "'parasol' in showroom_tab_services"
+    #   ansible.builtin.include_tasks:
+    #     file: 52-showroom-parasol.yml
+    #   tags:
+    #     - showroom-parasol
 
     - name: Validate showroom service and output view url(s)
       ansible.builtin.include_tasks:
