@@ -1,0 +1,158 @@
+== Showroom
+
+An Ansible role that deploys Showroom, a unified web-based console for demos, workshops, and labs. Showroom provides a single interface to access documentation, terminals, IDEs, and other web-based tools.
+
+=== What It Does
+
+The role:
+
+* Installs system dependencies (Podman, Git, Ansible, etc.)
+* Creates a dedicated `showroom` user (UID 1888) with rootless Podman access
+* Clones a content repository (AsciiDoc/Antora source)
+* Renders documentation using Antora in a container
+* Deploys containerized services via Podman Compose:
+** Traefik reverse proxy with automatic TLS/ACME
+** HTTPd server for rendered documentation
+** Optional tab services (terminals, CodeServer, etc.)
+* Manages services via systemd
+
+=== What It Installs
+
+==== System Packages
+
+* `ansible-core`, `git`, `podman`, `python-devel`, `socat`, `systemd-container`, `unzip`
+* Python: `podman-compose`
+
+==== Containers
+
+* **Traefik** (`quay.io/rhpds/traefik:v2`) - Reverse proxy with ACME/TLS support
+* **Showroom Content** (`quay.io/rhpds/showroom-content:v1.3.0`) - HTTPd server for documentation
+* **Antora** (`quay.io/rhpds/antora:v1.0.1`) - Documentation renderer (ephemeral)
+* **Wetty** (`quay.io/rhpds/wetty:v2.5`) - Web terminal (when enabled)
+* **CodeServer** (`quay.io/redhat-gpte/showroom/code-server:latest`) - VS Code in browser (when enabled)
+* **Parasol** (`quay.io/rhappsvcs/parasol-insurance:v0.0.1`) - AI assistant (when enabled)
+
+==== Directory Structure
+
+* `/opt/showroom/content` - Cloned content repository
+* `/opt/showroom/orchestration` - Podman Compose files and scripts
+* `/opt/showroom/build` - Rendered HTML output
+
+=== Configuration Options
+
+==== Content Repository
+
+* `showroom_git_repo` (default: `https://github.com/rhpds/showroom_template_nookbag.git`) - Content repository URL
+* `showroom_git_ref` (default: `main`) - Branch or tag to clone
+* `showroom_content_antora_playbook` (default: `default-site.yml`) - Antora playbook file
+* `showroom_var_inject` (default: `true`) - Inject user data variables into Antora attributes
+
+==== TLS / ACME
+
+Automatic certificate management via Traefik's ACME integration.
+
+* `showroom_tls_provider` (default: `zerossl`) - Options: `letsencrypt` | `zerossl` | `none`
+* `showroom_acme_email` (required) - Email for ACME account
+* `showroom_http_port` (default: `80`) - HTTP port (required for ZeroSSL HTTP-01)
+* `showroom_primary_port` (default: `443`) - HTTPS port
+
+**ZeroSSL** (HTTP-01 challenge):
+* Requires inbound TCP/80 and TCP/443
+* Requires EAB credentials:
+  * `showroom_acme_zerossl_eab_kid`
+  * `showroom_acme_zerossl_eab_hmac_key`
+
+**Let's Encrypt** (TLS-ALPN-01 challenge):
+* Requires inbound TCP/443 only
+* No EAB required
+
+**None** (HTTP only):
+* Disables TLS entirely
+* Serves on `showroom_http_port` only
+
+==== Tab Services
+
+Enable additional services accessible as tabs in the Showroom UI:
+
+* `showroom_tab_services` (default: `[]`) - List of services to enable:
+  * `single_terminal` - Web terminal (Wetty) at `/wetty`
+  * `second_terminal` - Second terminal at `/terminal2`
+  * `codeserver` - VS Code in browser at `/codeserver`
+  * `parasol` - AI assistant service
+
+Terminal configuration:
+* `showroom_ssh_method` (default: `password`) - `password` | `sshkey`
+* `showroom_ssh_key_type` (default: `ed25519`) - `ed25519` | `rsa`
+* `showroom_enable_root_ssh` (default: `false`) - Allow root SSH access
+
+==== UI Options
+
+* `showroom_ui` (default: `zero-touch`) - UI variant: `zero-touch` | `rhdev`
+* `showroom_primary_path` (default: `""`) - URL path prefix
+* `showroom_ansible_runner_api` (default: `false`) - Enable Ansible Runner API at `/runner`
+
+==== User and Security
+
+* `showroom_user` (default: `showroom`) - Service user name
+* `showroom_user_uid` (default: `1888`) - User UID
+* `showroom_openssh_keypair` (default: `generate`) - `generate` | `provisionkey`
+* `showroom_lab_users` - List of lab user accounts to create
+
+=== Requirements
+
+* Ansible 2.9 or higher
+* Target system: RHEL/Fedora with Podman support
+* Network access to container registries (quay.io)
+* For TLS: DNS pointing to target host, inbound ports 80/443 accessible
+
+=== Example Playbook
+
+[source,yaml]
+----
+- hosts: servers
+  roles:
+    - role: vm_workload_showroom
+      vars:
+        showroom_tls_provider: letsencrypt
+        showroom_acme_email: admin@example.com
+        showroom_host: showroom.example.com
+        showroom_tab_services:
+          - single_terminal
+          - codeserver
+        showroom_git_repo: https://github.com/yourorg/your-content.git
+        showroom_git_ref: main
+----
+
+=== Service Management
+
+The role creates a systemd service `showroom.service` that manages the Podman Compose stack.
+
+* Start: `systemctl start showroom`
+* Stop: `systemctl stop showroom`
+* Restart: `systemctl restart showroom`
+* Status: `systemctl status showroom`
+* Logs: `sudo -u showroom podman logs <container-name>`
+
+=== Troubleshooting
+
+==== TLS Certificate Issues
+
+If TLS verification fails:
+* Check reverse proxy logs: `sudo -u showroom podman logs reverse-proxy`
+* Verify DNS resolution and port accessibility
+* For ZeroSSL: ensure port 80 is reachable for HTTP-01 challenge
+* For Let's Encrypt: ensure port 443 is reachable for TLS-ALPN-01
+
+==== Container Issues
+
+* Check service status: `systemctl status showroom`
+* View all containers: `sudo -u showroom podman ps -a`
+* View compose logs: `sudo -u showroom podman-compose -f /opt/showroom/orchestration/container-compose.yml logs`
+
+=== License
+
+BSD
+
+=== Author Information
+
+- Tony Kay (tok@redhat.com)
