@@ -1,96 +1,158 @@
 == Showroom
 
-Showroom is an Ansible role that installs and configures Showroom, a replacement for bookbag.
-Showroom provides views (1 or more webpages) onto external web-based resources (e.g. websites, webapps, etc.).
-Its primary use case is to provide a one-stop console for demos, workshops, and labs.
+An Ansible role that deploys Showroom, a unified web-based console for demos, workshops, and labs. Showroom provides a single interface to access documentation, terminals, IDEs, and other web-based tools.
 
-=== Core Concepts
+=== What It Does
 
-* Views - a view is a webpage that is displayed in the browser, it can include:
-** Demo, lab, workshop content - typically created in asciidoc with Antora or similar
-** Tabs (iframed) - internal or external HTTP-based services e.g.
-*** Terminal(s) (tty) e.g. Butterfly, xtermjs etc
-*** IDEs such as VSCode/CodeServer, Jupyter Notebooks etc
-*** Consoles e.g. OpenShift, ArgoCD, Automation Controller etc
+The role:
 
-NOTE: Consoles are typically iframed into a view, but can be opened in a new tab/window.
-Issues *may* arise with iframing some consoles, e.g. OpenShift, ArgoCD, Automation Controller etc and these are actively being investigated.
+* Installs system dependencies (Podman, Git, Ansible, etc.)
+* Creates a dedicated `showroom` user (UID 1888) with rootless Podman access
+* Clones a content repository (AsciiDoc/Antora source)
+* Renders documentation using Antora in a container
+* Deploys containerized services via Podman Compose:
+** Traefik reverse proxy with automatic TLS/ACME
+** HTTPd server for rendered documentation
+** Optional tab services (terminals, CodeServer, etc.)
+* Manages services via systemd
 
+=== What It Installs
+
+==== System Packages
+
+* `ansible-core`, `git`, `podman`, `python-devel`, `socat`, `systemd-container`, `unzip`
+* Python: `podman-compose`
+
+==== Containers
+
+* **Traefik** (`quay.io/rhpds/traefik:v2`) - Reverse proxy with ACME/TLS support
+* **Showroom Content** (`quay.io/rhpds/showroom-content:v1.3.0`) - HTTPd server for documentation
+* **Antora** (`quay.io/rhpds/antora:v1.0.1`) - Documentation renderer (ephemeral)
+* **Wetty** (`quay.io/rhpds/wetty:v2.5`) - Web terminal (when enabled)
+* **CodeServer** (`quay.io/redhat-gpte/showroom/code-server:latest`) - VS Code in browser (when enabled)
+* **Parasol** (`quay.io/rhappsvcs/parasol-insurance:v0.0.1`) - AI assistant (when enabled)
+
+==== Directory Structure
+
+* `/opt/showroom/content` - Cloned content repository
+* `/opt/showroom/orchestration` - Podman Compose files and scripts
+* `/opt/showroom/build` - Rendered HTML output
+
+=== Configuration Options
+
+==== Content Repository
+
+* `showroom_git_repo` (default: `https://github.com/rhpds/showroom_template_nookbag.git`) - Content repository URL
+* `showroom_git_ref` (default: `main`) - Branch or tag to clone
+* `showroom_content_antora_playbook` (default: `default-site.yml`) - Antora playbook file
+* `showroom_var_inject` (default: `true`) - Inject user data variables into Antora attributes
+
+==== TLS / ACME
+
+Automatic certificate management via Traefik's ACME integration.
+
+* `showroom_tls_provider` (default: `zerossl`) - Options: `letsencrypt` | `zerossl` | `none`
+* `showroom_acme_email` (required) - Email for ACME account
+* `showroom_http_port` (default: `80`) - HTTP port (required for ZeroSSL HTTP-01)
+* `showroom_primary_port` (default: `443`) - HTTPS port
+
+**ZeroSSL** (HTTP-01 challenge):
+* Requires inbound TCP/80 and TCP/443
+* Requires EAB credentials:
+  * `showroom_acme_zerossl_eab_kid`
+  * `showroom_acme_zerossl_eab_hmac_key`
+
+**Let's Encrypt** (TLS-ALPN-01 challenge):
+* Requires inbound TCP/443 only
+* No EAB required
+
+**None** (HTTP only):
+* Disables TLS entirely
+* Serves on `showroom_http_port` only
+
+==== Tab Services
+
+Enable additional services accessible as tabs in the Showroom UI:
+
+* `showroom_tab_services` (default: `[]`) - List of services to enable:
+  * `single_terminal` - Web terminal (Wetty) at `/wetty`
+  * `second_terminal` - Second terminal at `/terminal2`
+  * `codeserver` - VS Code in browser at `/codeserver`
+  * `parasol` - AI assistant service
+
+Terminal configuration:
+* `showroom_ssh_method` (default: `password`) - `password` | `sshkey`
+* `showroom_ssh_key_type` (default: `ed25519`) - `ed25519` | `rsa`
+* `showroom_enable_root_ssh` (default: `false`) - Allow root SSH access
+
+==== UI Options
+
+* `showroom_ui` (default: `zero-touch`) - UI variant: `zero-touch` | `rhdev`
+* `showroom_primary_path` (default: `""`) - URL path prefix
+* `showroom_ansible_runner_api` (default: `false`) - Enable Ansible Runner API at `/runner`
+
+==== User and Security
+
+* `showroom_user` (default: `showroom`) - Service user name
+* `showroom_user_uid` (default: `1888`) - User UID
+* `showroom_openssh_keypair` (default: `generate`) - `generate` | `provisionkey`
+* `showroom_lab_users` - List of lab user accounts to create
 
 === Requirements
 
 * Ansible 2.9 or higher
-
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
-
-=== Role Variables
-
-
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
-
-==== TLS / ACME
-
-The role supports automatic TLS using Traefik's ACME integration. By default, ZeroSSL is used. You can switch to Let's Encrypt, or disable TLS entirely.
-
-Variables (see `defaults/main.yml`):
-
-* `showroom_tls_provider` (default: `zerossl`) — values: `letsencrypt` | `zerossl` | `none`
-* `showroom_acme_email` — ACME account email (required)
-* `showroom_http_port` (default: `80`) — host port for HTTP-01 (ZeroSSL only)
-
-ZeroSSL-specific:
-
-* `showroom_acme_zerossl_caserver` (default: `https://acme.zerossl.com/v2/DV90`)
-* `showroom_acme_zerossl_eab_kid`
-* `showroom_acme_zerossl_eab_hmac_key`
-
-Example (ZeroSSL):
-
-```
-showroom_tls_provider: zerossl
-showroom_acme_email: you@example.com
-showroom_acme_zerossl_eab_kid: "<your-eab-kid>"
-showroom_acme_zerossl_eab_hmac_key: "<your-eab-hmac>"
-```
-
-Notes:
-
-* ZeroSSL uses HTTP-01 and requires EAB (kid/hmac) values.
-* Let's Encrypt uses TLS-ALPN-01 and does not require EAB.
-* Both ACME providers require inbound TCP/443 to be reachable for certificate issuance and access.
-* ZeroSSL additionally requires inbound TCP/80 for the HTTP-01 challenge; Let's Encrypt (TLS-ALPN-01) does not require port 80.
-* `none` disables TLS and ACME entirely. Traefik serves HTTP on `showroom_http_port` (default 80) only; port 443 is not exposed.
-
-===== Provider behavior
-
-Provider choice sets sane defaults; you may override via variables:
-
-* `zerossl` → default caserver `https://acme.zerossl.com/v2/DV90`, default challenge `http`, requires EAB
-* `letsencrypt` → default caserver `https://acme-v02.api.letsencrypt.org/directory`, default challenge `tlsalpn`
-* `none` → disables TLS/ACME; only `web` entrypoint on port 80 is enabled
-
-Example (HTTP-only):
-
-```
-showroom_tls_provider: none
-showroom_http_port: 80
-```
-
-=== Dependencies
-
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+* Target system: RHEL/Fedora with Podman support
+* Network access to container registries (quay.io)
+* For TLS: DNS pointing to target host, inbound ports 80/443 accessible
 
 === Example Playbook
 
+[source,yaml]
+----
+- hosts: servers
+  roles:
+    - role: vm_workload_showroom
+      vars:
+        showroom_tls_provider: letsencrypt
+        showroom_acme_email: admin@example.com
+        showroom_host: showroom.example.com
+        showroom_tab_services:
+          - single_terminal
+          - codeserver
+        showroom_git_repo: https://github.com/yourorg/your-content.git
+        showroom_git_ref: main
+----
 
-    - hosts: servers
-      roles:
-         - showroom
+=== Service Management
 
-==== License
+The role creates a systemd service `showroom.service` that manages the Podman Compose stack.
+
+* Start: `systemctl start showroom`
+* Stop: `systemctl stop showroom`
+* Restart: `systemctl restart showroom`
+* Status: `systemctl status showroom`
+* Logs: `sudo -u showroom podman logs <container-name>`
+
+=== Troubleshooting
+
+==== TLS Certificate Issues
+
+If TLS verification fails:
+* Check reverse proxy logs: `sudo -u showroom podman logs reverse-proxy`
+* Verify DNS resolution and port accessibility
+* For ZeroSSL: ensure port 80 is reachable for HTTP-01 challenge
+* For Let's Encrypt: ensure port 443 is reachable for TLS-ALPN-01
+
+==== Container Issues
+
+* Check service status: `systemctl status showroom`
+* View all containers: `sudo -u showroom podman ps -a`
+* View compose logs: `sudo -u showroom podman-compose -f /opt/showroom/orchestration/container-compose.yml logs`
+
+=== License
 
 BSD
 
-===== Author Information
+=== Author Information
 
 - Tony Kay (tok@redhat.com)
