@@ -79,7 +79,7 @@ showroom:
   environment:
     ZT_UI_ENABLED: "true"
     ZT_BUNDLE: "{{ showroom_ui_zero_bundle }}"
-    ANTORA_PLAYBOOK: "site.yml"
+    ANTORA_PLAYBOOK: "{{ showroom_antora_playbook_to_use }}"
   volumes:
     - "{{ showroom_user_content_dir }}:/showroom/repo:z,ro"
     - "{{ showroom_user_build_dir }}:/showroom/www:z"
