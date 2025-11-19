@@ -87,6 +87,5 @@ ocp4_workload_showroom_test_self_provisioner: false
 ocp4_workload_showroom_zero_touch_bundle: "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.2.0/nookbag-v0.2.0.zip"
 ocp4_workload_showroom_zero_touch_ui_enabled: true
 
-# Optional per-user overrides to enable multi-user deployment.
-# Map of username -> { bastion_ssh_user_name, bastion_ssh_password, bastion_ssh_port? }
-ocp4_workload_showroom_users: {}
+# Enable passthrough of agnosticd_passthrough_user_data to individual users
+ocp4_workload_showroom_passthrough_user_data: false
