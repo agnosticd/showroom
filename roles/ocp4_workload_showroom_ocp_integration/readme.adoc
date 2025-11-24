@@ -22,10 +22,9 @@ It:
 * An existing OpenShift 4 cluster and working console/`oauth-openshift` routes.
 * The `oc` CLI must be available on the control host running Ansible.
 * The `kubernetes.core` collection must be installed.
-* The following AgnosticD variables / user data entries must be available:
+* The following AgnosticD variables must be available:
 ** `openshift_api_url` – API URL of the target cluster (with or without `https://`).
-** `openshift_cluster_admin_username` – admin user for `oc login` (via `agnosticd_user_data`).
-** `openshift_cluster_admin_password` – admin password (via `agnosticd_user_data`).
+** `openshift_api_key` – API token for `oc login --token`.
 
 The role logs in with `oc login` using these values and writes a temporary kubeconfig to `/tmp/kubeconfig-demo`.
 

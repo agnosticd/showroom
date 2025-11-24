@@ -1,15 +1,14 @@
 ---
-- name: Get OpenShift token without touching kubeconfig
+- name: Login to OpenShift with token
   command: >
-    oc login {{ openshift_api_url if 'https' in openshift_api_url else 'https' + openshift_api_url + ':6443' }}
-    -u {{ lookup('agnosticd.core.agnosticd_user_data', 'openshift_cluster_admin_username') }}
-    -p {{ lookup('agnosticd.core.agnosticd_user_data', 'openshift_cluster_admin_password') }}
+    oc login {{ openshift_api_url if 'https' in openshift_api_url else 'https://' + openshift_api_url + ':6443' }}
+    --token={{ openshift_api_key }}
     --insecure-skip-tls-verify
     --kubeconfig=/tmp/kubeconfig-demo
-  register: oc_token
+  register: oc_login
   retries: 10
   delay: 30
-  until: oc_token.rc == 0
+  until: oc_login.rc == 0
 
 - name: Remove X-Frame-Options header from default ingresscontroller
   kubernetes.core.k8s:
