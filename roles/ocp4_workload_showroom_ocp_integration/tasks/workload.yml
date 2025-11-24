@@ -93,6 +93,24 @@
           destinationCACertificate: "{{ service_ca_crt }}"
     merge_type: merge
 
+- name: Wait for router deployment to be ready after IngressController change
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: router-default
+    namespace: openshift-ingress
+  register: router_deployment
+  retries: 20
+  delay: 15
+  until:
+    - router_deployment.resources | length > 0
+    - router_deployment.resources[0].status.observedGeneration is defined
+    - router_deployment.resources[0].status.observedGeneration == router_deployment.resources[0].metadata.generation
+    - router_deployment.resources[0].status.updatedReplicas is defined
+    - router_deployment.resources[0].status.updatedReplicas == router_deployment.resources[0].spec.replicas
+    - router_deployment.resources[0].status.readyReplicas is defined
+    - router_deployment.resources[0].status.readyReplicas == router_deployment.resources[0].spec.replicas
+
 - name: Get Console URL
   kubernetes.core.k8s_info:
     api_version: route.openshift.io/v1
@@ -107,6 +125,10 @@
     validate_certs: false
     return_content: false
   register: console_response
-  retries: 10
-  delay: 30
-  until: "'x_frame_options' not in console_response"
+  failed_when: false
+  retries: 15
+  delay: 20
+  until:
+    - console_response.status is defined
+    - console_response.status == 200
+    - "'x_frame_options' not in console_response"
