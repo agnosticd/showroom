@@ -55,20 +55,6 @@
         replicas: 0
     merge_type: merge
 
-#- name: Add nodeSelector to authentication-operator deployment
-#  kubernetes.core.k8s:
-#    api_version: apps/v1
-#    kind: Deployment
-#    name: authentication-operator
-#    namespace: openshift-authentication-operator
-#    definition:
-#      spec:
-#        template:
-#          spec:
-#            nodeSelector:
-#              node-role.kubernetes.io/test: ""
-#    merge_type: merge
-
 - name: Limit authentication-operator pods to 0
   kubernetes.core.k8s:
     api_version: v1
