@@ -46,7 +46,7 @@ From a playbook:
   hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp4_workload_showroom_ocp_integration
+    - role: agnosticd.showroom.ocp4_workload_showroom_ocp_integration
 ----
 
 In an AgnosticD env_type (for example in `post_software.yml`), include the role after the cluster is ready and before Showroom starts using the embedded console.
