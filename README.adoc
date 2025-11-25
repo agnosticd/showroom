@@ -1,0 +1,89 @@
+= Ansible Collection - agnosticd.showroom
+:toc:
+:toc-placement!:
+
+An Ansible collection for deploying Showroom lab instruction environments to OpenShift clusters and VM-based infrastructure.
+
+toc::[]
+
+== Overview
+
+Showroom is a comprehensive lab instruction delivery platform that combines rendered Antora/AsciiDoc content with embedded terminals, consoles, and interactive tools. This collection provides Ansible roles to deploy Showroom in various environments, from dedicated OpenShift clusters to standalone VMs.
+
+== Collection Contents
+
+=== Roles
+
+[cols="1,3",options="header"]
+|===
+|Role |Description
+
+|`ocp4_workload_showroom`
+|Deploys Showroom to OpenShift 4+ clusters using Helm charts. Supports single-user and multi-user deployments with integrated terminals, content rendering, and optional VNC access. link:roles/ocp4_workload_showroom/README.adoc[Documentation]
+
+|`ocp4_workload_showroom_ocp_integration`
+|Enables OpenShift web console embedding in Showroom iframes by removing security headers and configuring authentication routes. link:roles/ocp4_workload_showroom_ocp_integration/README.adoc[Documentation]
+
+|`vm_workload_showroom`
+|Deploys Showroom on VM-based infrastructure (RHEL/Fedora) using rootless Podman containers. Includes TLS certificate management, systemd lifecycle management, and full tab service support. link:roles/vm_workload_showroom/README.adoc[Documentation]
+|===
+
+== Installation
+
+=== Install from Git Repository
+
+[source,bash]
+----
+ansible-galaxy collection install git+https://github.com/agnosticd/showroom.git
+----
+
+=== Install from Requirements File
+
+Create a `requirements.yml`:
+
+[source,yaml]
+----
+collections:
+  - name: https://github.com/agnosticd/showroom.git
+    type: git
+    version: main
+----
+
+Install:
+
+[source,bash]
+----
+ansible-galaxy collection install -r requirements.yml
+----
+
+=== Dependencies
+
+The collection requires these additional collections:
+
+* `kubernetes.core` (for OpenShift deployments)
+* `containers.podman` (for VM deployments)
+* `ansible.posix` (for VM deployments)
+* `community.crypto` (optional, for SSH key generation)
+* `agnosticd.core` (if using AgnosticD integration)
+
+Install dependencies:
+
+[source,bash]
+----
+ansible-galaxy collection install kubernetes.core containers.podman ansible.posix community.crypto
+----
+
+== Related Projects
+
+* **Showroom Deployer**: https://github.com/rhpds/showroom-deployer - Helm charts for OpenShift
+* **Showroom Content Images**: https://github.com/rhpds/showroom-images - Container images
+* **Nookbag (Zero Touch UI)**: https://github.com/rhpds/nookbag - Modern Showroom UI bundle
+* **Example Content Repositories**:
+  - https://github.com/rhpds/showroom_template_nookbag
+
+== Support
+
+For questions and support:
+
+* **Issues**: https://github.com/agnosticd/showroom/issues
+* **Discussions**: https://github.com/agnosticd/showroom/discussions

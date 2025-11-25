@@ -1,196 +1,492 @@
-= Showroom for OCP
+= ocp4_workload_showroom
+
+An Ansible role that deploys Showroom lab instruction environments to OpenShift clusters with rendered Antora content, integrated terminals, and optional VNC access.
 
 == Overview
 
-* Deploys to your demo cluster or the shared cluster
-** Deploying to your demo's openshift: <<your_openshift>>
-** Deploying to our OCP 410 shared OCP Cluster: <<shared_cluster>>
-* Single- or multi-user deployments via variables.
-* Deploys the showroom chart https://github.com/rhpds/showroom-deployer/charts/showroom-single-pod
-* Uses Ansible modules (no local helm CLI required).
-* Supports multiple deployment options
-** Just lab content
-** Lab content and a Wetty terminal that can be configured to automatically ssh to a bastion
-** Lab content and an OpenShift terminal pod (images available for ocp/rosa/aro/etc)
+This role deploys a complete Showroom instance to an OpenShift 4 cluster using a Helm chart.
+It is designed for AgnosticD environments but can also be used in standalone playbooks.
+Typical use cases are workshops, demos, or self-paced labs where each user gets a browser-based lab guide plus one or more terminals (containerized or SSH to a bastion) and optionally a VNC desktop.
 
-== Usage
+== What It Does
 
-.Integrating Showroom into your `config/env_type`:
-* Setup your `config/env_type` to support Showroom on OCP <<env_type>>
-* Setup auto-login to your bastion <<bastion_auto_ssh>>
+When `ACTION=provision` (or `create`), the role:
 
-[#your_openshift]
-== Are you deploying OpenShift and want Showroom deployed on it?
+1. Validates required inputs (`guid`, content Git repo, apps domain).
+2. Loads `user_data` (including optional per-user entries) via `agnosticd.core.agnosticd_user_data`.
+3. Optionally enriches user data with bastion connection details.
+4. Creates one or more namespaces (`showroom-<guid>` or `showroom-<guid>-<user>`).
+5. Renders the Showroom Helm chart with your content and terminal configuration using `kubernetes.core.helm_template`.
+6. Applies the rendered manifests with `kubernetes.core.k8s`.
+7. Waits for the Showroom pod(s) to be running and all containers ready; on failure, it collects pod describe and logs.
+8. Discovers the Showroom `Route` and writes the URL into AgnosticD `user_info` (per user if multi-user).
 
-. Add the `ocp4_workload_showroom` infra role to your CI:
+When `ACTION=destroy` (or `remove`), the role deletes the Showroom namespace(s), letting Kubernetes garbage collect all workload resources.
+
+== How It Works
+
+The implementation is split across a small set of task files:
+
+- `tasks/main.yml` selects `workload.yml` (provision) or `remove_workload.yml` (destroy) based on `ACTION`.
+- `tasks/prepare_variables.yaml`:
+  - Asserts required variables.
+  - Loads global `user_data` (and optionally per-user passthrough data).
+  - Optionally auto-populates bastion host/user/password/port into `_showroom_user_data`.
+  - Reads `user-info.yaml` from `output_dir` if present.
+- `tasks/workload.yml`:
+  - Detects single-user vs multi-user mode from `_showroom_user_data.users`.
+  - For each user (or once for single-user), sets `_showroom_namespace` and `_showroom_vars` and includes `deploy_showroom.yaml`.
+  - After deployment, includes `report_variables.yaml` once per namespace to publish the route URL.
+- `tasks/deploy_showroom.yaml`:
+  - Includes `setup_namespace.yaml` to create the namespace (or project on shared clusters).
+  - Renders the configured Showroom chart (`ocp4_workload_showroom_chart_package_url`, `ocp4_workload_showroom_deployer_chart_name`, `ocp4_workload_showroom_deployer_chart_version`) with `kubernetes.core.helm_template`.
+  - Applies the rendered manifests with `kubernetes.core.k8s`.
+  - Waits for the Showroom pod to exist and become Running with all containers ready.
+  - On failure, fetches pod logs (including init containers) and full pod YAML and fails with a detailed diagnostic message.
+- `tasks/setup_namespace.yaml`:
+  - Creates a `Namespace` labeled with `guid` and `creator`.
+  - If that fails (e.g. on shared clusters), falls back to `ProjectRequest`, treating `AlreadyExists` as success.
+- `tasks/report_variables.yaml`:
+  - Waits for the `Route` named `ocp4_workload_showroom_service_name` in `_showroom_namespace`.
+  - Builds the Showroom URL and writes:
+    - `showroom_primary_view_url` to user data.
+    - A user message: `Lab instructions: https://<host>/`.
+
+Multi-user behavior is driven by the presence of a `users` dictionary under `_showroom_user_data`; the role loops once per user, creating one namespace, pod, and route per entry.
+
+== Configuration
+
+This section lists the variables you are most likely to tune when using the role.
+Defaults come from `defaults/main.yaml` unless otherwise noted.
+
+=== Required Inputs
+
+[cols="1,1,3",options="header"]
+|===
+|Variable |Type |Description
+
+|`guid`
+|string
+|Unique identifier for this deployment. Used in namespace names and labels (for example `showroom-<guid>`).
+
+|`ocp4_workload_showroom_content_git_repo`
+|string
+|Git repository URL containing Antora content to render.
+
+|`openshift_cluster_ingress_domain` or `sandbox_openshift_apps_domain` or `showroom_openshift_apps_domain`
+|string
+|Apps domain used by the Helm chart to construct the Showroom route (for example `apps.cluster.example.com`). At least one must be set.
+
+|`ACTION`
+|string
+|Lifecycle action: `provision` / `create` to deploy, `destroy` / `remove` to tear down.
+|===
+
+=== Core Role Settings
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_name`
+|string
+|`showroom`
+|Base name for Showroom resources (used in labels and service name).
+
+|`ocp4_workload_showroom_namespace`
+|string
+|`showroom-{{ guid | default('00000') }}`
+|Base namespace for single-user deployments. In multi-user mode each user gets `{{ ocp4_workload_showroom_namespace }}-<user>`.
+
+|`ocp4_workload_showroom_namespace_display`
+|string
+|`Showroom Guide`
+|Human-friendly display name for the namespace.
+
+|`ocp4_workload_showroom_content_title`
+|string
+|`Showroom`
+|HTML page title for the lab interface.
+|===
+
+=== Content Configuration
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_content_git_repo`
+|string
+|`https://github.com/rhpds/showroom_template_default.git`
+|Antora content repository to clone.
+
+|`ocp4_workload_showroom_content_git_repo_ref`
+|string
+|`main`
+|Git branch, tag, or commit to use.
+
+|`ocp4_workload_showroom_content_antora_playbook`
+|string
+|`default-site.yml`
+|Antora playbook file inside the content repo.
+
+|`ocp4_workload_showroom_content_image`
+|string
+|`quay.io/rhpds/showroom-content:v1.3.0`
+|Container image that clones and renders the Antora content.
+
+|`ocp4_workload_showroom_content_only`
+|boolean
+|`false`
+|If `true`, only the content pane is shown (no terminals or VNC tabs).
+|===
+
+=== Terminal Configuration
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_terminal_type`
+|string
+|`showroom`
+|Terminal type: `showroom` (containerized tools), `wetty` (SSH via wetty), or `""` (no terminal).
+
+|`ocp4_workload_showroom_terminal_image`
+|string
+|`quay.io/rhpds/openshift-showroom-terminal-ocp:latest`
+|Container image for the showroom terminal (OpenShift/ROSA/ARO variants available).
+
+|`ocp4_workload_showroom_wetty_image`
+|string
+|`quay.io/rhpds/wetty:v2.5`
+|Image used when `terminal_type` is `wetty`.
+
+|`ocp4_workload_showroom_terminal_requests_cpu`
+|string
+|`50m`
+|CPU request for the terminal container.
+
+|`ocp4_workload_showroom_terminal_requests_memory`
+|string
+|`256Mi`
+|Memory request for the terminal container.
+
+|`ocp4_workload_showroom_terminal_limits_cpu`
+|string
+|`500m`
+|CPU limit for the terminal container.
+
+|`ocp4_workload_showroom_terminal_limits_memory`
+|string
+|`1Gi`
+|Memory limit for the terminal container.
+|===
+
+=== Wetty SSH (Bastion Auto-Login)
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_wetty_ssh_bastion_login`
+|boolean
+|`false`
+|If `true`, wetty automatically SSHes into the bastion using credentials from user data.
+|===
+
+When `ocp4_workload_showroom_wetty_ssh_bastion_login` is `true`, the role expects the following keys in `_showroom_user_data` (global or per user):
+
+[cols="1,1,3",options="header"]
+|===
+|Key |Type |Description
+
+|`bastion_public_hostname`
+|string
+|Hostname or IP of the bastion host.
+
+|`bastion_ssh_user_name`
+|string
+|SSH username.
+
+|`bastion_ssh_password`
+|string
+|SSH password.
+
+|`bastion_ssh_port`
+|integer
+|SSH port; defaults to `22` if not set.
+|===
+
+If these are not pre-populated, `tasks/prepare_variables.yaml` can auto-fill them from `bastion_ansible_host`, `bastion_ansible_user`, `bastion_ansible_ssh_pass`, and (optionally) `bastion_ansible_port`.
+
+=== Advanced Terminal Layouts
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_stacked_terminals_enable`
+|boolean
+|`false`
+|Show two terminals stacked vertically in a single tab.
+
+|`ocp4_workload_showroom_stacked_terminals_display_name`
+|string
+|`Terminals`
+|Display name for the stacked terminals tab.
+
+|`ocp4_workload_showroom_second_terminal_tab_enable`
+|boolean
+|`false`
+|Enable a second, separate terminal tab (ignored when stacked terminals are enabled).
+
+|`ocp4_workload_showroom_second_terminal_tab_display_name`
+|string
+|`Terminal 2`
+|Display name for the second terminal tab.
+|===
+
+=== NoVNC (VNC Desktop Tab)
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_novnc_enable`
+|boolean
+|`false`
+|Enable a NoVNC tab for connecting to a remote VNC server.
+
+|`ocp4_workload_showroom_novnc_vnc_server_hostport`
+|string
+|`128.0.0.1:5900`
+|VNC server address in `host:port` form.
+
+|`ocp4_workload_showroom_novnc_vnc_server_password`
+|string
+|`password`
+|VNC password passed to the NoVNC client.
+
+|`ocp4_workload_showroom_novnc_image`
+|string
+|`ghcr.io/rhpds/showroom-novnc:latest`
+|Container image for the NoVNC client.
+
+|`ocp4_workload_showroom_novnc_requests_cpu`
+|string
+|`50m`
+|CPU request for the NoVNC container.
+
+|`ocp4_workload_showroom_novnc_requests_memory`
+|string
+|`256Mi`
+|Memory request for the NoVNC container.
+
+|`ocp4_workload_showroom_novnc_limits_cpu`
+|string
+|`550m`
+|CPU limit for the NoVNC container.
+
+|`ocp4_workload_showroom_novnc_limits_memory`
+|string
+|`256Mi`
+|Memory limit for the NoVNC container.
+|===
+
+=== Helm / Chart Settings
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_chart_package_url`
+|string
+|`https://rhpds.github.io/showroom-deployer`
+|Helm chart repository URL.
+
+|`ocp4_workload_showroom_deployer_chart_name`
+|string
+|`showroom-single-pod`
+|Chart name to deploy (single-pod Showroom).
+
+|`ocp4_workload_showroom_deployer_chart_version`
+|string
+|`"^2.0.0"`
+|Chart version or semver range.
+
+|`ocp4_workload_showroom_service_name`
+|string
+|`{{ ocp4_workload_showroom_name }}`
+|Name of the `Route`/`Service` to wait for when publishing the URL.
+|===
+
+=== Zero-Touch / Passthrough Features
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_zero_touch_bundle`
+|string
+|`https://github.com/rhpds/nookbag/releases/download/nookbag-v0.2.1/nookbag-v0.2.1.zip`
+|URL of the zero-touch automation bundle (nookbag) exposed to the content container.
+
+|`ocp4_workload_showroom_zero_touch_ui_enabled`
+|boolean
+|`true`
+|Enable zero-touch UI elements inside Showroom.
+
+|`ocp4_workload_showroom_passthrough_user_data`
+|boolean
+|`false`
+|If `true`, `agnosticd_passthrough_user_data` is copied into per-user entries in `user_data` before deployment.
+|===
+
+=== Remote Cluster Deployment
+
+To target a different cluster than the one Ansible is running against, set:
+
+[cols="1,1,1,3",options="header"]
+|===
+|Variable |Type |Default |Description
+
+|`ocp4_workload_showroom_openshift_api_url`
+|string
+|(unset)
+|Remote API URL (for example `https://api.cluster.example.com:6443`). Used by all `kubernetes.core.*` calls when set.
+
+|`ocp4_workload_showroom_openshift_api_token`
+|string
+|(unset)
+|Bearer token for authenticating to the remote cluster. Must have permissions to create namespaces/projects and standard workload resources.
+|===
+
+== Examples
+
+The examples below show typical ways to consume the role.
+
+=== Minimal Single-User Deployment (AgnosticD or AgnosticV)
+
+[source,yaml]
+----
+# config/<env_type>/default_vars.yml or AgnosticV vars
+guid: "abc123"
+openshift_cluster_ingress_domain: "apps.cluster.example.com"
+
+ocp4_workload_showroom_content_git_repo: "https://github.com/myorg/my-lab-content.git"
+ocp4_workload_showroom_content_git_repo_ref: "main"
+----
+
+Include the role in your env type configuration:
 
 [source,yaml]
 ----
 infra_workloads:
-[ ... all your other infra roles ... ]
-- ocp4_workload_showroom   # last
+  - ocp4_workload_my_infrastructure
+  - ocp4_workload_my_operators
+  - ocp4_workload_showroom   # Deploy showroom last
 ----
 
-== Which "showroom" repo of antora and asciidoc to deploy?
+=== Content-Only Mode (No Terminals)
 
 [source,yaml]
 ----
-ocp4_workload_showroom_content_git_repo: "https://github.com/rhpds/showroom_template_default.git"
-# Optional: tag, branch, etc. Default is main.
-ocp4_workload_showroom_content_git_repo_ref: main
-----
+guid: "abc123"
+openshift_cluster_ingress_domain: "apps.cluster.example.com"
 
-[#env_type]
-== Update your `config/env_type` to support showroom on ocp
-
-. Add the following to your config/env-type's post_software.yml.
-It needs a bastion, afaict.
-
-.`config/env_type/post_software.yml`
-+
-.Example
-[source,yaml]
-----
-    - name: Deploy Showroom
-      when: showroom_deploy_shared_cluster_enable | default(false) | bool
-      include_role:
-        name: ocp4_workload_showroom
-----
-
-== Selecting the Helm Chart
-
-Regardless of deployment type (below) showroom is always deployed using a Helm Chart whose source can be found at https://github.com/rhpds/showroom-deployer/charts/showroom-single-pod
-
-If newer charts are available than the default version in the workload (`^2.0.0`) you will need to specify the version to use. If you want to use another chart (careful: it needs to be compatible) you can pick that, too.
-+
-.Example
-[source,yaml]
-----
-# Usually don't have to change the chart package URL:
-ocp4_workload_showroom_chart_package_url: https://rhpds.github.io/showroom-deployer
-
-# Usually don't have to change the chart name:
-ocp4_workload_showroom_deployer_chart_name: showroom-single-pod
-
-# Pick the latest chart available from https://github.com/rhpds/showroom-deployer/releases
-ocp4_workload_showroom_deployer_chart_version: "^2.0.0"
-----
-
-== Show just lab instructions (whole window)
-
-. To show just lab instructions and no terminal simply set the repo variables and then set the variable to show content only. Any settings for terminals will be ignored.
-+
-.Example
-[source,yaml]
-----
-ocp4_workload_showroom_content_git_repo: "https://github.com/rhpds/showroom_template_default.git"
-ocp4_workload_showroom_content_git_repo_ref: main
-
+ocp4_workload_showroom_content_git_repo: "https://github.com/myorg/my-lab-content.git"
 ocp4_workload_showroom_content_only: true
 ----
 
-== Enable Bastion Auto-SSH in your env_type/config
+This renders the guide with no terminal or VNC tabs, ideal for slide-style or read-only content.
 
-This is only possible for the `wetty` terminal.
+=== Wetty Terminal with Auto-SSH to Bastion
 
-. Make sure your env_type/config puts the following values in user_data:
-+
-.Example
 [source,yaml]
 ----
-- name: Provide installed bastion data
-  agnosticd.core.agnosticd_user_info:
-    data:
-      bastion_ssh_command: "ssh {{ ansible_user }}@bastion.{{ guid }}.{{ azure_root_dns_zone }}"
-      bastion_public_hostname: "bastion.{{ guid }}.{{ cluster_dns_zone }}"
-      bastion_ssh_user_name: "{{ ansible_user }}"
-      bastion_ssh_password: "{{ generated_password }}"
-----
+guid: "abc123"
+openshift_cluster_ingress_domain: "apps.cluster.example.com"
 
-. Set up your config for Wetty and automatic ssh:
-+
-.Example
-[source,yaml]
-----
-# Select wetty as the terminal type
+ocp4_workload_showroom_content_git_repo: "https://github.com/myorg/my-lab-content.git"
+
 ocp4_workload_showroom_terminal_type: wetty
-
-# Change the image if you want a different image. Otherwise this line is
-# the default
-ocp4_workload_showroom_wetty_image: quay.io/rhpds/wetty:v2.5
-
-# Set auto login to true:
 ocp4_workload_showroom_wetty_ssh_bastion_login: true
 ----
 
-[NOTE]
-====
-Key based authentication is TODO
-====
+User data must include bastion connection details (global or per user), for example:
 
-== Running terminal in a pod
-
-Showroom also includes the capability to run the terminal in a pod rather than ssh-ing to the bastion. This enables use cases without bastions - and it also enables multi-user showroom deployments.
-
-Multi-user deployment is controlled via variables:
-+
-.Example
 [source,yaml]
 ----
-# Explicit per-user map (user -> credentials used by Wetty if enabled)
-ocp4_workload_showroom_users:
-  user1: {}
-  user2: {}
-
-# Or auto-generate N users (names user1..userN)
-num_users: 2
+users:
+  user1:
+    bastion_public_hostname: "bastion.abc123.example.com"
+    bastion_ssh_user_name: "lab-user"
+    bastion_ssh_password: "MyPassword123"
 ----
 
-=== Available terminal container images
+=== Multi-User Workshop Deployment
 
-There are a number of container images available to be used as a terminal.
-
-Source code for the images below is available at https://github.com/rhpds/openshift-showroom-terminal-image
-
-* *Base Image:* this image has the base capability to run on OpenShift but it has no tools installed besides the bare-bones Linux tools
-** `quay.io/rhpds/openshift-showroom-terminal-baseimage:latest`
-* *OCP Image:* this image builds on top of the base image and additionally has all necessary OpenShift tools installed (oc, tkn, kn, ...)
-** `quay.io/rhpds/openshift-showroom-terminal-ocp:latest`
-* *ROSA Image:* this image builds on top of the OCP image and additionally has `rosa` and `aws` installed.
-** `quay.io/rhpds/openshift-showroom-terminal-rosa:latest`
-* *ARO Image:* this image builds on top of the OCP image and additionally has `az` (Azure CLI) installed.
-** `quay.io/rhpds/openshift-showroom-terminal-aro:latest`
-
-If you need specialized tools it is suggested to start with one of the above and add your tools to the image.
-
-=== Configuring OpenShift Terminal
-
-In order to use the terminal pod set the terminal type to `showroom`, set the and set the image you need.
-+
-.Example
 [source,yaml]
 ----
-# Select showroom as the terminal type
+guid: "workshop-2025-01"
+openshift_cluster_ingress_domain: "apps.cluster.example.com"
+
+ocp4_workload_showroom_content_git_repo: "https://github.com/myorg/workshop-content.git"
 ocp4_workload_showroom_terminal_type: showroom
-
-# Change the image if you want a different image. Otherwise this line is
-# the default
-ocp4_workload_showroom_terminal_image: quay.io/rhpds/openshift-showroom-terminal-ocp:latest
 ----
 
-[#shared_cluster]
-== Deploying Showroom to the Shared Cluster
+Ensure `user_data` contains a `users` map, for example:
 
-. Add the following to AgnosticV
-
-.AgnosticV
 [source,yaml]
 ----
-#include /includes/secrets/showroom-shared-410.yaml <1>
+users:
+  user1:
+    some_credential: "value1"
+  user2:
+    some_credential: "value2"
+----
 
-# --------------------------------------------------------------------
-# Showroom
-# --------------------------------------------------------------------
-showroom_deploy_shared_cluster_enable: true <2>
-ocp4_workload_showroom_content_git_repo: https://github.com/rhpds/showroom_template_default.git
+The role will deploy one namespace, pod, and route per user, such as:
+
+- `showroom-workshop-2025-01-user1.apps.cluster.example.com`
+- `showroom-workshop-2025-01-user2.apps.cluster.example.com`
+
+=== Standalone Playbook Usage
+
+You can also run the role directly with `ansible-playbook`:
+
+[source,yaml]
+----
+# deploy-showroom.yml
+---
+- name: Deploy Showroom
+  hosts: localhost
+  gather_facts: false
+  vars:
+    guid: "test-123"
+    ACTION: "provision"
+    openshift_cluster_ingress_domain: "apps.cluster.example.com"
+    ocp4_workload_showroom_content_git_repo: "https://github.com/rhpds/showroom_template_default.git"
+
+    # Optional: deploy to a remote cluster
+    # ocp4_workload_showroom_openshift_api_url: "https://api.cluster.example.com:6443"
+    # ocp4_workload_showroom_openshift_api_token: "sha256~..."
+
+  roles:
+    - agnosticd.showroom.ocp4_workload_showroom
+----
+
+Run:
+
+[source,bash]
+----
+ansible-playbook deploy-showroom.yml
+----
+
+To remove the environment:
+
+[source,bash]
+----
+ansible-playbook deploy-showroom.yml -e ACTION=destroy
 ----
