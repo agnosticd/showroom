@@ -1,0 +1,53 @@
+= Showroom OCP Integration (iframe support)
+
+== Overview
+
+This role tweaks an existing OpenShift 4 cluster so that the web console can be safely embedded into Showroom in an iframe.
+
+It:
+
+* Patches the default `IngressController` to remove security headers that block iframes:
+** `X-Frame-Options`
+** `Content-Security-Policy`
+** `referrer-policy`
+* Retrieves the cluster service CA and:
+** Patches the `oauth-openshift` route to use `reencrypt` TLS and the service CA as destination CA
+* Disables the authentication operator so it does not revert the changes:
+** Scales `authentication-operator` deployment to 0 replicas
+** Sets a `ResourceQuota` in `openshift-authentication-operator` to limit pods to `0`
+* Polls the OpenShift Console route until the `X-Frame-Options` header is gone
+
+== Requirements
+
+* An existing OpenShift 4 cluster and working console/`oauth-openshift` routes.
+* The `oc` CLI must be available on the control host running Ansible.
+* The `kubernetes.core` collection must be installed.
+* The following AgnosticD variables must be available:
+** `openshift_api_url` – API URL of the target cluster (with or without `https://`).
+** `openshift_api_key` – API token for `oc login --token`.
+
+The role logs in with `oc login` using these values and writes a temporary kubeconfig to `/tmp/kubeconfig-demo`.
+
+== Role Variables
+
+These are the main variables exposed by the role (see `defaults/main.yml` for defaults):
+
+* `become_override` (bool, default: `false`): Force privilege escalation for all tasks in this role.
+* `silent` (bool, default: `false`): When `true`, suppresses the informational debug messages in pre/post/remove workload tasks.
+
+== Usage
+
+From a playbook:
+
+[source,yaml]
+----
+- name: Enable OCP console iframe integration for Showroom
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: agnosticd.showroom.ocp4_workload_showroom_ocp_integration
+----
+
+In an AgnosticD env_type (for example in `post_software.yml`), include the role after the cluster is ready and before Showroom starts using the embedded console.
+
+After the role runs successfully, the OpenShift web console should be embeddable in Showroom via an iframe without being blocked by browser security headers.
