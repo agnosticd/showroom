@@ -34,6 +34,25 @@
   ansible.builtin.set_fact:
     _showroom_user_data: "{{ _showroom_user_data | combine(lookup('agnosticd.core.agnosticd_user_data', '*')) }}"
 
+- name: Auto-populate bastion connection info into _showroom_user_data when not already set
+  when:
+  - bastion_ansible_host is defined
+  - bastion_ansible_user is defined
+  - _showroom_user_data.bastion_public_hostname is not defined
+  ansible.builtin.set_fact:
+    _showroom_user_data: >-
+      {{
+        _showroom_user_data | combine({
+          'bastion_public_hostname': bastion_ansible_host,
+          'bastion_ssh_user_name': bastion_ansible_user,
+          'bastion_ssh_password': bastion_ansible_ssh_pass,
+          'bastion_ssh_port': (bastion_ansible_port | default(22)),
+          'bastion_ssh_command': (
+            'ssh ' ~ (bastion_ansible_user | string) ~ '@' ~ (bastion_ansible_host | string) ~ ' -p ' ~ ((bastion_ansible_port | default(22)) | string)
+          )
+        }, recursive=True)
+      }}
+
 - name: Set fact _user_count
   when: _showroom_user_data.users is defined
   ansible.builtin.set_fact:
