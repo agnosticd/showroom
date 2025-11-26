@@ -39,6 +39,7 @@
   - bastion_ansible_host is defined
   - bastion_ansible_user is defined
   - _showroom_user_data.bastion_public_hostname is not defined
+    or _showroom_user_data.bastion_public_hostname == 'test_hostname'
   ansible.builtin.set_fact:
     _showroom_user_data: >-
       {{
