@@ -84,7 +84,7 @@ ocp4_workload_showroom_deployer_chart_version: "^2.0.0"
 
 ocp4_workload_showroom_test_self_provisioner: false
 
-ocp4_workload_showroom_zero_touch_bundle: "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.2.0/nookbag-v0.2.0.zip"
+ocp4_workload_showroom_zero_touch_bundle: "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.2.1/nookbag-v0.2.1.zip"
 ocp4_workload_showroom_zero_touch_ui_enabled: true
 
 # Enable passthrough of agnosticd_passthrough_user_data to individual users
