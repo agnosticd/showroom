@@ -6,7 +6,7 @@
   when: not _showroom_user_data.users is defined
   vars:
     _showroom_namespace: "{{ ocp4_workload_showroom_namespace }}"
-    _showroom_vars: "{{ _showroom_user_data | combine({'guid': guid}) }}"
+    _showroom_vars: "{{ _showroom_global_data | combine({'guid': guid}) }}"
   ansible.builtin.include_tasks: deploy_showroom.yaml
 
 - name: Deploy showroom (multi user)
@@ -14,7 +14,15 @@
   vars:
     _showroom_user: "{{ _showroom_users_item.key }}"
     _showroom_namespace: "{{ ocp4_workload_showroom_namespace }}-{{ _showroom_user }}"
-    _showroom_vars: "{{ _showroom_users_item.value | combine({'guid': guid, 'user': _showroom_user}) }}"
+    _showroom_vars: >-
+      {{
+        _showroom_global_data
+        | combine(
+            _showroom_users_item.value,
+            {'guid': guid, 'user': _showroom_user},
+            recursive=True
+          )
+      }}
   ansible.builtin.include_tasks: deploy_showroom.yaml
   loop: "{{ _showroom_user_data.users | dict2items }}"
   loop_control:
@@ -24,7 +32,7 @@
 - name: Report Variables to user_data (single user)
   when: not _showroom_user_data.users is defined
   vars:
-    _showroom_vars: "{{ _showroom_user_data | combine({'guid': guid}) }}"
+    _showroom_vars: "{{ _showroom_global_data | combine({'guid': guid}) }}"
     _showroom_namespace: "{{ ocp4_workload_showroom_namespace }}"
   ansible.builtin.include_tasks: report_variables.yaml
 
@@ -33,7 +41,15 @@
   vars:
     _showroom_user: "{{ _showroom_users_item.key }}"
     _showroom_namespace: "{{ ocp4_workload_showroom_namespace }}-{{ _showroom_user }}"
-    _showroom_vars: "{{ _showroom_users_item.value | combine({'guid': guid, 'user': _showroom_user}) }}"
+    _showroom_vars: >-
+      {{
+        _showroom_global_data
+        | combine(
+            _showroom_users_item.value,
+            {'guid': guid, 'user': _showroom_user},
+            recursive=True
+          )
+      }}
   ansible.builtin.include_tasks: report_variables.yaml
   loop: "{{ _showroom_user_data.users | dict2items }}"
   loop_control:
