@@ -104,7 +104,7 @@
     name: router-default
     namespace: openshift-ingress
   register: router_deployment
-  retries: 20
+  retries: 40
   delay: 15
   until:
     - router_deployment.resources | length > 0
