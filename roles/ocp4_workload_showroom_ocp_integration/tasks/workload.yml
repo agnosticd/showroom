@@ -1,4 +1,22 @@
 ---
+- name: Resolve OpenShift API URL for ocp4_workload_showroom_ocp_integration
+  set_fact:
+    openshift_api_url: >-
+      {{
+        ocp4_workload_showroom_ocp_integration_openshift_api_url
+        | default(openshift_api_url, true)
+      }}
+
+- name: Resolve OpenShift API token for ocp4_workload_showroom_ocp_integration
+  set_fact:
+    openshift_api_key: >-
+      {{
+        ocp4_workload_showroom_ocp_integration_openshift_api_token
+        | default(openshift_cluster_admin_token, true)
+        | default(openshift_api_token, true)
+        | default(openshift_api_key, true)
+      }}
+
 - name: Login to OpenShift with token
   command: >
     oc login {{ openshift_api_url if 'https' in openshift_api_url else 'https://' + openshift_api_url + ':6443' }}
