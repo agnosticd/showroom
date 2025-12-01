@@ -54,6 +54,33 @@ The implementation is split across a small set of task files:
 
 Multi-user behavior is driven by the presence of a `users` dictionary under `_showroom_user_data`; the role loops once per user, creating one namespace, pod, and route per entry.
 
+=== Data handling and `user_data`
+
+This role is designed to work with the standard AgnosticD `user_data` / `user_info` model and exposes that data directly to the Showroom content container:
+
+* **Global `user_data` load**
+** At the start of `tasks/prepare_variables.yaml`, the role calls `lookup('agnosticd.core.agnosticd_user_data', '*')` and merges the result into `_showroom_user_data`.
+** Any keys written by other workloads via `agnosticd.core.agnosticd_user_info` *without* a `user` field (for example `keycloak_admin_user`, cluster URLs, etc.) appear as top‑level keys in `_showroom_user_data`.
+
+* **Optional passthrough to per‑user entries**
+** When `ocp4_workload_showroom_passthrough_user_data` is `true` and `agnosticd_passthrough_user_data` is defined, the role writes the contents of `agnosticd_passthrough_user_data` into each user’s entry in `user_data` (using `agnosticd.core.agnosticd_user_info` with `user: user<N>`).
+** After this step, the role reloads global `user_data` so `_showroom_user_data` reflects any newly created per‑user keys.
+
+* **Global vs per‑user slices**
+** `_showroom_user_data` may contain:
+*** Top‑level (global) keys such as `keycloak_admin_user`, `openshift_cluster_console_url`, bastion details, etc.
+*** An optional `users` map (`users.user1`, `users.user2`, …) with per‑user overrides.
+** The role derives `_showroom_global_data` by taking `_showroom_user_data` and dropping the `users` key, so it contains only global (non‑user‑specific) entries.
+
+* **What the content container sees**
+** For **single‑user** deployments, `_showroom_vars` is built as `_showroom_global_data` plus `guid`, and passed to the Helm chart as `content.user_data`.
+** For **multi‑user** deployments, `_showroom_vars` is built per user by combining `_showroom_global_data`, that user’s entry from `_showroom_user_data.users`, and a few helper keys (such as `guid` and `user`), then passed as `content.user_data`.
+** Inside the Showroom content container, `content.user_data` is therefore a YAML document that always includes all global keys (for example `keycloak_admin_user`) and, in multi‑user mode, any per‑user overrides for the current user.
+
+* **What this means for content authors**
+** You can rely on any global values written by earlier workloads (for example the Keycloak authentication workload) being available in `user_data` for use in your Antora content or helper scripts.
+** In multi‑user workshops, you can place user‑specific values under `users.userN` and they will be merged with the global keys for that user’s Showroom instance.
+
 == Configuration
 
 This section lists the variables you are most likely to tune when using the role.
