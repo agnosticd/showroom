@@ -54,6 +54,17 @@
         }, recursive=True)
       }}
 
+- name: Build global (non-user) slice of user_data
+  ansible.builtin.set_fact:
+    _showroom_global_data: >-
+      {{
+        _showroom_user_data
+        | dict2items
+        | rejectattr('key', 'equalto', 'users')
+        | list
+        | items2dict
+      }}
+
 - name: Set fact _user_count
   when: _showroom_user_data.users is defined
   ansible.builtin.set_fact:
