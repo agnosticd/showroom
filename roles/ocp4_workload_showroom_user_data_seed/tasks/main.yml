@@ -1,0 +1,14 @@
+---
+
+- name: Validate seed data is defined and is a mapping
+  ansible.builtin.assert:
+    that:
+      - ocp4_workload_showroom_user_data_seed is defined
+      - ocp4_workload_showroom_user_data_seed is mapping
+    quiet: true
+    fail_msg: >-
+      Expected ocp4_workload_showroom_user_data_seed to be defined as a mapping.
+
+- name: Seed AgnosticD user_data for Showroom
+  agnosticd.core.agnosticd_user_info:
+    data: "{{ ocp4_workload_showroom_user_data_seed }}"
