@@ -125,11 +125,6 @@ Defaults come from `defaults/main.yaml` unless otherwise noted.
 |`showroom-{{ guid | default('00000') }}`
 |Base namespace for single-user deployments. In multi-user mode each user gets `{{ ocp4_workload_showroom_namespace }}-<user>`.
 
-|`ocp4_workload_showroom_namespace_display`
-|string
-|`Showroom Guide`
-|Human-friendly display name for the namespace.
-
 |`ocp4_workload_showroom_content_title`
 |string
 |`Showroom`
@@ -258,20 +253,10 @@ If these are not pre-populated, `tasks/prepare_variables.yaml` can auto-fill the
 |`false`
 |Show two terminals stacked vertically in a single tab.
 
-|`ocp4_workload_showroom_stacked_terminals_display_name`
-|string
-|`Terminals`
-|Display name for the stacked terminals tab.
-
 |`ocp4_workload_showroom_second_terminal_tab_enable`
 |boolean
 |`false`
 |Enable a second, separate terminal tab (ignored when stacked terminals are enabled).
-
-|`ocp4_workload_showroom_second_terminal_tab_display_name`
-|string
-|`Terminal 2`
-|Display name for the second terminal tab.
 |===
 
 === NoVNC (VNC Desktop Tab)
