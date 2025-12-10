@@ -111,7 +111,7 @@
     name: "{{ _showroom_pod_name }}"
   register: r_pod_status
   retries: 60
-  delay: 5
+  delay: 10
   until:
     - r_pod_status.resources | length > 0
     - r_pod_status.resources[0].status.phase == 'Running'
