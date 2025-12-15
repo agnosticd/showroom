@@ -69,24 +69,6 @@
   set_fact:
     service_ca_crt: "{{ service_ca_cm.resources[0].data['service-ca.crt'] }}"
 
-
-- name: Patch oauth-openshift route to use reencrypt and service-ca.crt
-  kubernetes.core.k8s:
-    api_version: route.openshift.io/v1
-    kind: Route
-    name: oauth-openshift
-    namespace: openshift-authentication
-    definition:
-      spec:
-        tls:
-          termination: reencrypt
-          destinationCACertificate: "{{ service_ca_crt }}"
-    merge_type: merge
-  register: patch_oauth_route
-  retries: 20
-  delay: 3
-  until: patch_oauth_route is not failed
-
 - name: Wait for router deployment to be ready after IngressController change
   kubernetes.core.k8s_info:
     api_version: apps/v1
@@ -104,7 +86,6 @@
     - router_deployment.resources[0].status.updatedReplicas == router_deployment.resources[0].spec.replicas
     - router_deployment.resources[0].status.readyReplicas is defined
     - router_deployment.resources[0].status.readyReplicas == router_deployment.resources[0].spec.replicas
-
 
 - name: Get oauth URL
   kubernetes.core.k8s_info:
