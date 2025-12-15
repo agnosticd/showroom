@@ -15,6 +15,10 @@
       metadata:
         name: "{{ ocp4_workload_showroom_namespace }}"
   ignore_errors: true
+  register: remove_ns_single
+  retries: 20
+  delay: 3
+  until: remove_ns_single is not failed
 
 - name: Remove Namespaces (multi user)
   when: _showroom_user_data.users is defined
@@ -32,6 +36,10 @@
       metadata:
         name: "{{ _showroom_namespace }}"
   ignore_errors: true
+  register: remove_ns_multi
+  retries: 20
+  delay: 3
+  until: remove_ns_multi is not failed
   loop: >-
     {{ _showroom_user_data.users | dict2items }}
   loop_control:
