@@ -69,35 +69,6 @@
   set_fact:
     service_ca_crt: "{{ service_ca_cm.resources[0].data['service-ca.crt'] }}"
 
-- name: Scale down authentication-operator deployment
-  kubernetes.core.k8s:
-    api_version: apps/v1
-    kind: Deployment
-    name: authentication-operator
-    namespace: openshift-authentication-operator
-    definition:
-      spec:
-        replicas: 0
-    merge_type: merge
-  register: scale_down_auth
-  retries: 20
-  delay: 3
-  until: scale_down_auth is not failed
-
-- name: Limit authentication-operator pods to 0
-  kubernetes.core.k8s:
-    api_version: v1
-    kind: ResourceQuota
-    name: limit-authentication-operator-pods
-    namespace: openshift-authentication-operator
-    definition:
-      spec:
-        hard:
-          pods: "0"
-  register: limit_auth_pods
-  retries: 20
-  delay: 3
-  until: limit_auth_pods is not failed
 
 - name: Patch oauth-openshift route to use reencrypt and service-ca.crt
   kubernetes.core.k8s:
@@ -133,6 +104,43 @@
     - router_deployment.resources[0].status.updatedReplicas == router_deployment.resources[0].spec.replicas
     - router_deployment.resources[0].status.readyReplicas is defined
     - router_deployment.resources[0].status.readyReplicas == router_deployment.resources[0].spec.replicas
+
+
+- name: Get oauth URL
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: oauth-openshift
+    namespace: openshift-authentication
+  register: oauth_route
+
+- name: Add oauth-openshift route to use reencrypt and service-ca.crt
+  kubernetes.core.k8s:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: oauth-openshift-new
+    namespace: openshift-authentication
+    definition:
+      spec:
+        host: "{{ oauth_route.resources[0].spec.host }}"
+        tls:
+          termination: reencrypt
+          destinationCACertificate: "{{ service_ca_crt }}"
+        to:
+          kind: Service
+          name: oauth-openshift
+          weight: 100
+        port:
+          targetPort: 6443
+        wildcardPolicy: None
+
+- name: Delete original oauth-openshift route
+  kubernetes.core.k8s:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: oauth-openshift
+    namespace: openshift-authentication
+    state: absent
 
 - name: Get Console URL
   kubernetes.core.k8s_info:
