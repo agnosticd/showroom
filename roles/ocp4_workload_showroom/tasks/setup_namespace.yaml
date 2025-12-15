@@ -19,6 +19,9 @@
           creator: agnosticd.core_workloads.ocp4_workload_showroom
   register: r_create_showroom_namespace
   ignore_errors: true
+  retries: 20
+  delay: 3
+  until: r_create_showroom_namespace is not failed
 
 # For shared clusters where the service account does not have permission
 # to create namespaces.
@@ -37,6 +40,9 @@
           guid: "{{ guid }}"
           creator: agnosticd.core_workloads.ocp4_workload_showroom
   register: r_create_showroom_project
+  retries: 20
+  delay: 3
+  until: r_create_showroom_project is not failed
   failed_when: >-
     r_create_showroom_project is failed and
     'AlreadyExists' not in r_create_showroom_project.msg | default('')
