@@ -8,7 +8,7 @@ f_user_data: {}
 # Showroom service pod images
 # ----------------------------------------------------------------------
 showroom_antora_image: quay.io/rhpds/antora
-showroom_antora_image_tag: v1.0.1
+showroom_antora_image_tag: v1.1.0
 
 showroom_reverse_proxy_image: quay.io/rhpds/traefik
 showroom_reverse_proxy_image_tag: v2
