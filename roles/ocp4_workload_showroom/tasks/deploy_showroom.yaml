@@ -137,8 +137,10 @@
     tail_lines: 200
   register: r_pod_logs
   changed_when: false
-  failed_when: false
   ignore_errors: true
+  retries: 20
+  delay: 3
+  until: r_pod_logs is not failed
 
 - name: Get logs from init containers
   when:
@@ -176,8 +178,10 @@
     name: "{{ _showroom_pod_name }}"
   register: r_pod_full_info
   changed_when: false
-  failed_when: false
   ignore_errors: true
+  retries: 20
+  delay: 3
+  until: r_pod_full_info is not failed
 
 - name: Report pod failure with describe and logs
   when:
