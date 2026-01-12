@@ -111,6 +111,7 @@ showroom_tab_tty1_username: >-
   }}
 
 showroom_dnf_packages:
+  - acl
   - ansible-core
   - git
   - podman
