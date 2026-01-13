@@ -80,6 +80,8 @@ showroom:
     ZT_UI_ENABLED: "true"
     ZT_BUNDLE: "{{ showroom_ui_zero_bundle }}"
     ANTORA_PLAYBOOK: "{{ showroom_antora_playbook_to_use }}"
+    DOMAIN: "{{ showroom_host }}"
+    GUID: "{{ guid }}"
   volumes:
     - "{{ showroom_user_content_dir }}:/showroom/repo:z,ro"
     - "{{ showroom_user_build_dir }}:/showroom/www:z"
