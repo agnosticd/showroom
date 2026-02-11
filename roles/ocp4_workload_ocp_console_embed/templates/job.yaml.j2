@@ -39,16 +39,8 @@ spec:
               # -------------------------------------------------------
               echo "Step 1: Patching IngressController/default (delete X-Frame-Options, set CSP frame-ancestors)..."
 
-              # Build CSP with only specific Showroom route hostnames
-              # instead of allowing all *.DOMAIN routes (clickjacking mitigation)
-              ALLOWED_ORIGINS="'self'"
-              if [ "$NUM_USERS" -gt 0 ]; then
-                for i in $(seq 1 $NUM_USERS); do
-                  ALLOWED_ORIGINS="${ALLOWED_ORIGINS} https://showroom-showroom-${GUID}-user${i}.${DOMAIN}"
-                done
-              else
-                ALLOWED_ORIGINS="${ALLOWED_ORIGINS} https://showroom-showroom-${GUID}-admin.${DOMAIN}"
-              fi
+              # Build CSP to allow all subdomains of the cluster domain
+              ALLOWED_ORIGINS="'self' https://*.${DOMAIN}"
               CSP_VALUE="frame-ancestors ${ALLOWED_ORIGINS}"
               echo "  CSP: ${CSP_VALUE}"
 
