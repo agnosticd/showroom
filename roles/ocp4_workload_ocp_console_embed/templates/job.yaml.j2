@@ -24,12 +24,25 @@ spec:
             - |
               DOMAIN="{{ ocp_console_embed_domain }}"
               GUID="{{ ocp_console_embed_guid }}"
-              CONSOLE_HOST="console-openshift-console.${DOMAIN}"
-              OAUTH_HOST="oauth-openshift.${DOMAIN}"
+
+              if [ -z "$DOMAIN" ]; then
+                echo "Domain not provided, fetching from IngressController..."
+                DOMAIN=$(oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.status.domain}')
+              fi
+
+              if [ -z "$DOMAIN" ]; then
+                 echo "ERROR: Could not determine cluster domain."
+                 exit 1
+              fi
+
+              CONSOLE_HOST=$(oc get route console -n openshift-console -o jsonpath='{.spec.host}' 2>/dev/null || echo "console-openshift-console.${DOMAIN}")
+              OAUTH_HOST=$(oc get route oauth-openshift -n openshift-authentication -o jsonpath='{.spec.host}' 2>/dev/null || echo "oauth-openshift.${DOMAIN}")
 
               echo "=== OCP Console Embed: Setup ==="
               echo "Domain: ${DOMAIN}"
               echo "GUID: ${GUID}"
+              echo "Console Host: ${CONSOLE_HOST}"
+              echo "OAuth Host: ${OAUTH_HOST}"
               echo ""
 
               # -------------------------------------------------------

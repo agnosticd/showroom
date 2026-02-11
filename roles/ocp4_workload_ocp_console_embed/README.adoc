@@ -19,5 +19,5 @@ This role deploys the OCP Console Embed workload, which configures the OpenShift
 
 The role deploys:
 - A MutatingWebhook that intercepts Route updates to `oauth-openshift` and forces `reencrypt` TLS.
-- A Job that patches the default IngressController to strip `X-Frame-Options` and set `Content-Security-Policy`.
-- Associated RBAC and Service resources.
+- Patches the default IngressController to strip `X-Frame-Options` and set `Content-Security-Policy`.
+- Patches the `oauth-openshift` Route to use `reencrypt` TLS immediately (maintained by the webhook).

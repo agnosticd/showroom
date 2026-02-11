@@ -1,4 +1,8 @@
 ---
+- name: Set ocp_console_embed_domain fallback
+  ansible.builtin.set_fact:
+    ocp_console_embed_domain: "{{ ocp_console_embed_domain | default(openshift_cluster_ingress_domain | default(sandbox_openshift_apps_domain, true) | default(showroom_openshift_apps_domain, true) | default('', true), true) }}"
+
 - name: Check if image version is auto
   block:
     - name: Get OpenShift ClusterVersion
