@@ -21,3 +21,15 @@ The role deploys:
 - A MutatingWebhook that intercepts Route updates to `oauth-openshift` and forces `reencrypt` TLS.
 - Patches the default IngressController to strip `X-Frame-Options` and set `Content-Security-Policy`.
 - Patches the `oauth-openshift` Route to use `reencrypt` TLS immediately (maintained by the webhook).
+
+== Testing
+
+The webhook logic is implemented in a standalone Python script located at `files/webhook.py`.
+Unit tests are available in `tests/test_webhook.py`.
+
+To run the tests:
+
+[source,bash]
+----
+python3 roles/ocp4_workload_ocp_console_embed/tests/test_webhook.py
+----
