@@ -30,18 +30,72 @@
     name: "{{ ocp_console_embed_namespace }}"
     state: present
 
-- name: Deploy ocp-console-embed resources
+- name: Deploy ocp-console-embed webhook resources
   kubernetes.core.k8s:
     state: present
     definition: "{{ lookup('template', item) }}"
     namespace: "{{ ocp_console_embed_namespace }}"
   loop:
     - serviceaccount.yaml.j2
-    - clusterrole.yaml.j2
-    - clusterrolebinding.yaml.j2
     - webhook-script.yaml.j2
     - webhook-cabundle.yaml.j2
     - webhook-service.yaml.j2
     - webhook-deployment.yaml.j2
     - webhook-config.yaml.j2
-    - job.yaml.j2
+
+- name: Patch IngressController to remove X-Frame-Options and set CSP
+  kubernetes.core.k8s:
+    api_version: operator.openshift.io/v1
+    kind: IngressController
+    name: default
+    namespace: openshift-ingress-operator
+    state: present
+    definition:
+      spec:
+        httpHeaders:
+          actions:
+            response:
+              - name: X-Frame-Options
+                action:
+                  type: Delete
+              - name: Content-Security-Policy
+                action:
+                  type: Set
+                  set:
+                    value: "frame-ancestors 'self' https://*.{{ ocp_console_embed_domain }}"
+
+- name: Wait for IngressController to be ready
+  kubernetes.core.k8s_info:
+    api_version: operator.openshift.io/v1
+    kind: IngressController
+    name: default
+    namespace: openshift-ingress-operator
+  register: r_ingress
+  until:
+    - r_ingress.resources[0].status.availableReplicas is defined
+    - r_ingress.resources[0].status.availableReplicas == r_ingress.resources[0].status.replicas
+  retries: 60
+  delay: 5
+
+- name: Get Service CA certificate
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    name: v4-0-config-system-service-ca
+    namespace: openshift-authentication
+  register: r_service_ca
+
+- name: Patch OAuth Route to use reencrypt TLS
+  kubernetes.core.k8s:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: oauth-openshift
+    namespace: openshift-authentication
+    state: present
+    definition:
+      spec:
+        tls:
+          termination: reencrypt
+          insecureEdgeTerminationPolicy: Redirect
+          destinationCACertificate: "{{ r_service_ca.resources[0].data['service-ca.crt'] }}"
+  when: r_service_ca.resources | length > 0
