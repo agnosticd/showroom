@@ -3,4 +3,6 @@ ocp_console_embed_guid: ""
 ocp_console_embed_domain: ""
 ocp_console_embed_namespace: ocp-console-embed
 ocp_console_embed_name: ocp-console-embed
-ocp_console_embed_image: quay.io/openshift/origin-cli:4.17
+# Set to "auto" to detect cluster version, or specify a version string like "4.17"
+ocp_console_embed_image_version: "auto"
+ocp_console_embed_image: "quay.io/openshift/origin-cli:{{ ocp_console_embed_image_version }}"

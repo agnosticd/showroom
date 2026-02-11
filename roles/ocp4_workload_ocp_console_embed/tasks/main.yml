@@ -1,4 +1,24 @@
 ---
+- name: Check if image version is auto
+  block:
+    - name: Get OpenShift ClusterVersion
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: ClusterVersion
+        name: version
+      register: r_cluster_version
+
+    - name: Set detected image version
+      set_fact:
+        ocp_console_embed_image_version: "{{ r_cluster_version.resources[0].status.history[0].version | regex_search('^[0-9]+\\.[0-9]+') }}"
+      when: r_cluster_version.resources | length > 0
+
+    - name: Fallback to default version if detection fails
+      set_fact:
+        ocp_console_embed_image_version: "4.21"
+      when: r_cluster_version.resources | length == 0
+  when: ocp_console_embed_image_version == "auto"
+
 - name: Ensure namespace exists
   kubernetes.core.k8s:
     api_version: v1
