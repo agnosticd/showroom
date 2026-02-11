@@ -96,9 +96,18 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 if __name__ == '__main__':
+    import signal
     server = ThreadedHTTPServer(('0.0.0.0', 8443), Handler)
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(TLS_CERT, TLS_KEY)
     server.socket = ctx.wrap_socket(server.socket, server_side=True)
+
+    def shutdown_handler(signum, frame):
+        print(f"[webhook] Received signal {signum}, shutting down...", flush=True)
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, shutdown_handler)
+    signal.signal(signal.SIGINT, shutdown_handler)
+
     print("[webhook] OAuth route mutating webhook listening on :8443", flush=True)
     server.serve_forever()
