@@ -1,0 +1,42 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ ocp_console_embed_name }}
+rules:
+  # Patch default IngressController to strip iframe-blocking headers
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - ingresscontrollers
+    resourceNames:
+      - default
+    verbs:
+      - get
+      - patch
+  # Read and annotate OAuth route (triggers auth operator reconciliation)
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes
+    resourceNames:
+      - oauth-openshift
+    verbs:
+      - get
+      - patch
+  # Required to set destinationCACertificate on the OAuth route
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes/custom-host
+    verbs:
+      - create
+      - update
+  # Read service CA cert for OAuth route reencrypt TLS
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - v4-0-config-system-service-ca
+    verbs:
+      - get

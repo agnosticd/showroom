@@ -1,0 +1,23 @@
+---
+- name: Ensure namespace exists
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ ocp_console_embed_namespace }}"
+    state: present
+
+- name: Deploy ocp-console-embed resources
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', item) }}"
+    namespace: "{{ ocp_console_embed_namespace }}"
+  loop:
+    - serviceaccount.yaml.j2
+    - clusterrole.yaml.j2
+    - clusterrolebinding.yaml.j2
+    - webhook-script.yaml.j2
+    - webhook-cabundle.yaml.j2
+    - webhook-service.yaml.j2
+    - webhook-deployment.yaml.j2
+    - webhook-config.yaml.j2
+    - job.yaml.j2
