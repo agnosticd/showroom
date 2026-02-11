@@ -31,15 +31,15 @@ spec:
               path: /healthz
               port: 8443
               scheme: HTTPS
-            initialDelaySeconds: 3
-            periodSeconds: 10
+            initialDelaySeconds: {{ ocp_console_embed_webhook_readiness_initial_delay }}
+            periodSeconds: {{ ocp_console_embed_webhook_readiness_period }}
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8443
               scheme: HTTPS
-            initialDelaySeconds: 5
-            periodSeconds: 15
+            initialDelaySeconds: {{ ocp_console_embed_webhook_liveness_initial_delay }}
+            periodSeconds: {{ ocp_console_embed_webhook_liveness_period }}
           resources:
             requests:
               cpu: 10m
