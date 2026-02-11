@@ -12,7 +12,6 @@ This role deploys the OCP Console Embed workload, which configures the OpenShift
 | `ocp_console_embed_image` | `quay.io/openshift/origin-cli:4.17` | Image to use for the webhook and job.
 | `ocp_console_embed_domain` | `""` | Base domain of the OpenShift cluster.
 | `ocp_console_embed_guid` | `""` | GUID of the environment.
-| `ocp_console_embed_num_users` | `0` | Number of users to allow in CSP frame-ancestors.
 |===
 
 == Description

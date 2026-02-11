@@ -24,14 +24,12 @@ spec:
             - |
               DOMAIN="{{ ocp_console_embed_domain }}"
               GUID="{{ ocp_console_embed_guid }}"
-              NUM_USERS={{ ocp_console_embed_num_users | int }}
               CONSOLE_HOST="console-openshift-console.${DOMAIN}"
               OAUTH_HOST="oauth-openshift.${DOMAIN}"
 
               echo "=== OCP Console Embed: Setup ==="
               echo "Domain: ${DOMAIN}"
               echo "GUID: ${GUID}"
-              echo "NumUsers: ${NUM_USERS}"
               echo ""
 
               # -------------------------------------------------------

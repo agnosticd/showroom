@@ -4,4 +4,3 @@ ocp_console_embed_domain: ""
 ocp_console_embed_namespace: ocp-console-embed
 ocp_console_embed_name: ocp-console-embed
 ocp_console_embed_image: quay.io/openshift/origin-cli:4.17
-ocp_console_embed_num_users: 0
