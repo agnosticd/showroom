@@ -5,6 +5,7 @@ import os
 import ssl
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 
 TLS_CERT = os.environ.get('TLS_CERT_PATH', '/tls/tls.crt')
 TLS_KEY = os.environ.get('TLS_KEY_PATH', '/tls/tls.key')
@@ -23,6 +24,10 @@ def load_service_ca():
     return None
 
 SERVICE_CA = load_service_ca()
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+    pass
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -91,7 +96,7 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 if __name__ == '__main__':
-    server = HTTPServer(('0.0.0.0', 8443), Handler)
+    server = ThreadedHTTPServer(('0.0.0.0', 8443), Handler)
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(TLS_CERT, TLS_KEY)
     server.socket = ctx.wrap_socket(server.socket, server_side=True)
