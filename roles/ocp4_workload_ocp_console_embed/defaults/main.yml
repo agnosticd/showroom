@@ -3,9 +3,8 @@ ocp_console_embed_guid: ""
 ocp_console_embed_domain: ""
 ocp_console_embed_namespace: ocp-console-embed
 ocp_console_embed_name: ocp-console-embed
-# Set to "auto" to detect cluster version, or specify a version string like "4.17"
-ocp_console_embed_image_version: "auto"
-ocp_console_embed_image: "quay.io/openshift/origin-cli:{{ ocp_console_embed_image_version }}"
+# Use UBI10 Python 3.12 minimal image
+ocp_console_embed_image: "registry.access.redhat.com/ubi10/python-312-minimal:10.1"
 
 # Wait times and retries
 ocp_console_embed_router_wait_retries: 60
