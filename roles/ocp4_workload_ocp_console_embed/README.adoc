@@ -1,0 +1,35 @@
+= OCP Console Embed Role
+
+This role deploys the OCP Console Embed workload, which configures the OpenShift Console and OAuth server to allow embedding in iframes (e.g. for Showroom).
+
+== Variables
+
+[cols="1,1,2",options="header"]
+|===
+| Variable | Default | Description
+| `ocp_console_embed_namespace` | `ocp-console-embed` | Namespace to deploy resources into.
+| `ocp_console_embed_name` | `ocp-console-embed` | Base name for resources.
+| `ocp_console_embed_image_version` | `auto` | Version of the `origin-cli` image to use. Set to "auto" to detect from cluster, or specify a version (e.g. "4.17").
+| `ocp_console_embed_image` | `quay.io/openshift/origin-cli:{{ ocp_console_embed_image_version }}` | Image to use for the webhook.
+| `ocp_console_embed_domain` | `""` | Base domain of the OpenShift cluster.
+| `ocp_console_embed_guid` | `""` | GUID of the environment.
+|===
+
+== Description
+
+The role deploys:
+- A MutatingWebhook that intercepts Route updates to `oauth-openshift` and forces `reencrypt` TLS.
+- Patches the default IngressController to strip `X-Frame-Options` and set `Content-Security-Policy`.
+- Patches the `oauth-openshift` Route to use `reencrypt` TLS immediately (maintained by the webhook).
+
+== Testing
+
+The webhook logic is implemented in a standalone Python script located at `files/webhook.py`.
+Unit tests are available in `tests/test_webhook.py`.
+
+To run the tests:
+
+[source,bash]
+----
+python3 roles/ocp4_workload_ocp_console_embed/tests/test_webhook.py
+----
