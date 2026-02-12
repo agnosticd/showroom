@@ -13,6 +13,9 @@ ocp4_workload_showroom_content_git_repo_ref: main
 # Which Antora Playbook to use in the content repo
 ocp4_workload_showroom_content_antora_playbook: default-site.yml
 
+# Enable Antora dev mode (adds attributes debug page and dev navigation)
+ocp4_workload_showroom_enable_dev_mode: false
+
 # Which terminal to deploy:
 # - wetty: deploy the wetty terminal image. You can then set
 #          ocp4_workload_showroom_wetty_ssh_bastion_login to true
