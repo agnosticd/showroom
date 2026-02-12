@@ -26,6 +26,7 @@
         antoraPlaybook: "{{ ocp4_workload_showroom_content_antora_playbook }}"
         zero_touch_bundle: "{{ ocp4_workload_showroom_zero_touch_bundle }}"
         zero_touch_ui_enabled: "{{ ocp4_workload_showroom_zero_touch_ui_enabled | string | lower }}"
+        enableDevMode: "{{ ocp4_workload_showroom_enable_dev_mode | bool | string | lower }}"
       guid: "{{ guid }}"
       user: "{{ _showroom_user | default('') }}"
       deployer:
