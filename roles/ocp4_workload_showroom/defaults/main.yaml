@@ -67,5 +67,16 @@ ocp4_workload_showroom_deployer_chart_version: "^2.0.0"
 ocp4_workload_showroom_zero_touch_bundle: "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.2.2/nookbag-v0.2.2.zip"
 ocp4_workload_showroom_zero_touch_ui_enabled: true
 
+# Override tabs in ui-config.yml at deploy time
+# Set to a list of tab objects to override the content repo defaults
+# Example:
+#   ocp4_workload_showroom_tabs:
+#     - name: OCP Console
+#       url: "https://console-openshift-console.apps.example.com"
+#     - name: Terminal
+#       type: terminal
+# Empty list means use the content repo's ui-config.yml tabs as-is
+ocp4_workload_showroom_tabs: []
+
 # Enable passthrough of agnosticd_passthrough_user_data to individual users
 ocp4_workload_showroom_passthrough_user_data: false
