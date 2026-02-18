@@ -14,7 +14,7 @@ showroom_reverse_proxy_image: quay.io/rhpds/traefik
 showroom_reverse_proxy_image_tag: v2
 
 showroom_httpd_image: quay.io/rhpds/showroom-content
-showroom_httpd_image_tag: v1.3.0
+showroom_httpd_image_tag: v1.4.0
 
 showroom_codeserver_image: quay.io/redhat-gpte/showroom/code-server
 showroom_codeserver_image_tag: latest
@@ -48,6 +48,9 @@ showroom_git_ref: main
 # When set to "default-site.yml" (default), will try default-site.yml first, then fall back to site.yml
 # Users can override with any custom playbook filename
 showroom_content_antora_playbook: default-site.yml
+
+# Override ui-config.yml for the content container (JSON or YAML string, empty = use repo default)
+showroom_content_ui_config: ""
 
 showroom_primary_path: ""    # this is the postfix to the URL where the UI is available
 showroom_ui: zero-touch               # rhdev (RH Developer old UI) and zero-touch are options, extensible
