@@ -25,8 +25,11 @@
         repoRef: "{{ ocp4_workload_showroom_content_git_repo_ref }}"
         antoraPlaybook: "{{ ocp4_workload_showroom_content_antora_playbook }}"
         uiConfig: "{{ ocp4_workload_showroom_content_ui_config }}"
+        enableDevMode: "{{ ocp4_workload_showroom_antora_enable_dev_mode }}"
         zero_touch_bundle: "{{ ocp4_workload_showroom_zero_touch_bundle }}"
         zero_touch_ui_enabled: "{{ ocp4_workload_showroom_zero_touch_ui_enabled | string | lower }}"
+      antora:
+        image: "{{ ocp4_workload_showroom_antora_image }}"
       guid: "{{ guid }}"
       user: "{{ _showroom_user | default('') }}"
       deployer:
