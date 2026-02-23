@@ -55,3 +55,12 @@
   loop_control:
     loop_var: _showroom_users_item
     label: "{{ _showroom_users_item.key }}"
+
+- name: Report Variables to global user_data (multi user, single user count)
+  when:
+  - _showroom_user_data.users is defined
+  - _user_count | int == 1
+  vars:
+    _showroom_namespace: >-
+      {{ ocp4_workload_showroom_namespace }}-{{ (_showroom_user_data.users | dict2items | first).key }}
+  ansible.builtin.include_tasks: report_variables.yaml
