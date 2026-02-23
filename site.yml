@@ -1,0 +1,21 @@
+---
+site:
+  title: Showroom Collection Documentation
+  url: https://agnosticd.github.io/showroom
+  start_page: showroom::index.adoc
+
+content:
+  sources:
+    - url: .
+      start_path: docs
+
+ui:
+  bundle:
+    url: https://github.com/rhpds/nookbag-bundle/releases/download/v0.0.3/ui-bundle.zip
+    snapshot: true
+
+runtime:
+  cache_dir: ./.cache/antora
+
+output:
+  dir: ./docs/build/site
