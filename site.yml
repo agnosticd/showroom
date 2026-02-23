@@ -1,0 +1,21 @@
+---
+site:
+  title: Showroom Collection Documentation
+  url: https://agnosticd.github.io/showroom
+  start_page: showroom::index.adoc
+
+content:
+  sources:
+    - url: .
+      start_path: docs
+
+ui:
+  bundle:
+    url: https://github.com/rhpds/rhdp_showroom_theme/releases/download/rh-one-2025/ui-bundle.zip
+    snapshot: true
+
+runtime:
+  cache_dir: ./.cache/antora
+
+output:
+  dir: ./docs/build/site
