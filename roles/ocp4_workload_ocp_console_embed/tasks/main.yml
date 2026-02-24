@@ -1,8 +1,4 @@
 ---
-- name: Set ocp_console_embed_domain fallback
-  ansible.builtin.set_fact:
-    ocp_console_embed_domain: "{{ ocp_console_embed_domain | default(openshift_cluster_ingress_domain | default(sandbox_openshift_apps_domain, true) | default(showroom_openshift_apps_domain, true) | default('', true), true) }}"
-
 - name: Ensure namespace exists
   kubernetes.core.k8s:
     api_version: v1
@@ -23,6 +19,13 @@
     - webhook-deployment.yaml.j2
     - webhook-config.yaml.j2
 
+- name: Get ingress controler
+  kubernetes.core.k8s_info:
+    kind: IngressController
+    name: default
+    namespace: openshift-ingress-operator
+  register: r_ingress
+
 - name: Patch IngressController to remove X-Frame-Options and set CSP
   kubernetes.core.k8s:
     api_version: operator.openshift.io/v1
@@ -42,7 +45,7 @@
                 action:
                   type: Set
                   set:
-                    value: "frame-ancestors 'self' https://*.{{ ocp_console_embed_domain }}"
+                    value: "frame-ancestors 'self' https://*.{{ r_ingress.resources[0].status.domain }}"
 
 - name: Wait for IngressController to be ready
   kubernetes.core.k8s_info:
