@@ -1,13 +1,13 @@
 = Ansible Collection - agnosticd.showroom
 
-An Ansible collection for deploying https://agnosticd.github.io/showroom[Showroom] lab instruction environments to OpenShift clusters and VM-based infrastructure.
+An Ansible collection for deploying https://rhpds.github.io/showroom_template_nookbag[Showroom] lab instruction environments to OpenShift clusters and VM-based infrastructure.
 
 Showroom is a web-based lab instruction platform for the https://demo.redhat.com[Red Hat Demo Platform].
 It combines rendered Antora/AsciiDoc content with embedded terminals, consoles, and interactive tools -- giving workshop and demo participants everything they need in a single browser tab.
 
 [TIP]
 ====
-**Full documentation**: https://agnosticd.github.io/showroom
+**Full documentation**: https://rhpds.github.io/showroom_template_nookbag
 
 The docs site covers everything from quick-start guides to full role references, content authoring, AgnosticV configuration, and architecture deep dives.
 ====
