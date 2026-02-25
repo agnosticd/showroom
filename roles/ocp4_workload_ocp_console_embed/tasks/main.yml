@@ -2,11 +2,11 @@
 - name: Set ocp_console_embed_domain fallback
   ansible.builtin.set_fact:
     ocp_console_embed_domain: >-
-      {{ ocp_console_embed_domain
+      {{ (ocp_console_embed_domain
          | default(openshift_cluster_ingress_domain
            | default(sandbox_openshift_apps_domain, true)
            | default(showroom_openshift_apps_domain, true)
-           | default('', true), true) }}
+           | default('', true), true)) | trim }}
 
 - name: Fail if ocp_console_embed_domain is not set
   ansible.builtin.fail:
@@ -169,7 +169,7 @@
           insecureEdgeTerminationPolicy: Redirect
           destinationCACertificate: "{{ r_service_ca.resources[0].data['service-ca.crt'] }}"
 
-- name: Verify OAuth route is reencrypt
+- name: Verify OAuth route stays reencrypt after auth operator reconciliation
   kubernetes.core.k8s_info:
     api_version: route.openshift.io/v1
     kind: Route
@@ -179,5 +179,5 @@
   until:
     - r_oauth_route.resources | length > 0
     - r_oauth_route.resources[0].spec.tls.termination == 'reencrypt'
-  retries: 6
+  retries: 12
   delay: 5
