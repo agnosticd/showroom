@@ -35,8 +35,12 @@ ocp4_workload_showroom_content_ui_config: ""
 # Antora builder image used in the init container
 ocp4_workload_showroom_antora_image: quay.io/rhpds/antora:v1.2.0
 
-# Enable Antora dev-mode extension (adds attribute pages and unlisted pages to nav)
-ocp4_workload_showroom_antora_enable_dev_mode: "false"
+# Master toggle: enable dev mode for all showroom containers (antora, and future content containers)
+ocp4_workload_showroom_enable_dev_mode: false
+
+# Enable Antora dev-mode extension (adds attribute pages and unlisted pages to nav).
+# Also enabled when ocp4_workload_showroom_enable_dev_mode is true.
+ocp4_workload_showroom_antora_enable_dev_mode: false
 
 # Showroom Terminal Image. Options include:
 # - quay.io/rhpds/openshift-showroom-terminal-ocp:latest
