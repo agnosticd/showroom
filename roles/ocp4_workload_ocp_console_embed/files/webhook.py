@@ -32,10 +32,16 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/healthz':
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(b'ok')
+            if SERVICE_CA:
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(b'ok')
+            else:
+                self.send_response(503)
+                self.send_header('Content-Type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(b'service CA not loaded')
         else:
             self.send_response(404)
             self.end_headers()

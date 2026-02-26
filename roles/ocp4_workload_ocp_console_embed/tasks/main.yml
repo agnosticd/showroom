@@ -1,7 +1,20 @@
 ---
 - name: Set ocp_console_embed_domain fallback
   ansible.builtin.set_fact:
-    ocp_console_embed_domain: "{{ ocp_console_embed_domain | default(openshift_cluster_ingress_domain | default(sandbox_openshift_apps_domain, true) | default(showroom_openshift_apps_domain, true) | default('', true), true) }}"
+    ocp_console_embed_domain: >-
+      {{ (ocp_console_embed_domain
+         | default(openshift_cluster_ingress_domain
+           | default(sandbox_openshift_apps_domain, true)
+           | default(showroom_openshift_apps_domain, true)
+           | default('', true), true)) | trim }}
+
+- name: Fail if ocp_console_embed_domain is not set
+  ansible.builtin.fail:
+    msg: >-
+      ocp_console_embed_domain is empty. Set ocp_console_embed_domain,
+      openshift_cluster_ingress_domain, sandbox_openshift_apps_domain,
+      or showroom_openshift_apps_domain.
+  when: ocp_console_embed_domain | length == 0
 
 - name: Ensure namespace exists
   kubernetes.core.k8s:
@@ -10,7 +23,10 @@
     name: "{{ ocp_console_embed_namespace }}"
     state: present
 
-- name: Deploy ocp-console-embed webhook resources
+# Deploy resources that trigger async service CA operator provisioning:
+#   - Service annotation -> TLS Secret
+#   - ConfigMap annotation -> CA bundle injection
+- name: Deploy webhook pre-requisite resources
   kubernetes.core.k8s:
     state: present
     definition: "{{ lookup('template', item) }}"
@@ -20,8 +36,73 @@
     - webhook-script.yaml.j2
     - webhook-cabundle.yaml.j2
     - webhook-service.yaml.j2
-    - webhook-deployment.yaml.j2
-    - webhook-config.yaml.j2
+
+- name: Wait for TLS Secret to be provisioned by service CA operator
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ ocp_console_embed_name }}-webhook-tls"
+    namespace: "{{ ocp_console_embed_namespace }}"
+  register: r_tls_secret
+  until:
+    - r_tls_secret.resources | length > 0
+    - r_tls_secret.resources[0].data['tls.crt'] is defined
+    - r_tls_secret.resources[0].data['tls.crt'] | length > 0
+  retries: "{{ ocp_console_embed_service_ca_wait_retries }}"
+  delay: "{{ ocp_console_embed_service_ca_wait_delay }}"
+
+- name: Wait for service CA bundle to be injected into ConfigMap
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    name: "{{ ocp_console_embed_name }}-service-ca"
+    namespace: "{{ ocp_console_embed_namespace }}"
+  register: r_ca_bundle
+  until:
+    - r_ca_bundle.resources | length > 0
+    - r_ca_bundle.resources[0].data['service-ca.crt'] is defined
+    - r_ca_bundle.resources[0].data['service-ca.crt'] | length > 0
+  retries: "{{ ocp_console_embed_service_ca_wait_retries }}"
+  delay: "{{ ocp_console_embed_service_ca_wait_delay }}"
+
+- name: Deploy webhook Deployment
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'webhook-deployment.yaml.j2') }}"
+    namespace: "{{ ocp_console_embed_namespace }}"
+
+- name: Wait for webhook Deployment to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ ocp_console_embed_name }}-webhook"
+    namespace: "{{ ocp_console_embed_namespace }}"
+  register: r_webhook_deploy
+  until:
+    - r_webhook_deploy.resources | length > 0
+    - r_webhook_deploy.resources[0].status.readyReplicas is defined
+    - r_webhook_deploy.resources[0].status.readyReplicas >= 1
+  retries: "{{ ocp_console_embed_webhook_wait_retries }}"
+  delay: "{{ ocp_console_embed_webhook_wait_delay }}"
+
+# Register the webhook only after the pod is ready to serve requests.
+- name: Deploy MutatingWebhookConfiguration
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'webhook-config.yaml.j2') }}"
+
+- name: Wait for caBundle injection in MutatingWebhookConfiguration
+  kubernetes.core.k8s_info:
+    api_version: admissionregistration.k8s.io/v1
+    kind: MutatingWebhookConfiguration
+    name: "{{ ocp_console_embed_name }}-oauth-route"
+  register: r_webhook_config
+  until:
+    - r_webhook_config.resources | length > 0
+    - r_webhook_config.resources[0].webhooks[0].clientConfig.caBundle is defined
+    - r_webhook_config.resources[0].webhooks[0].clientConfig.caBundle | length > 0
+  retries: "{{ ocp_console_embed_service_ca_wait_retries }}"
+  delay: "{{ ocp_console_embed_service_ca_wait_delay }}"
 
 - name: Patch IngressController to remove X-Frame-Options and set CSP
   kubernetes.core.k8s:
@@ -44,26 +125,35 @@
                   set:
                     value: "frame-ancestors 'self' https://*.{{ ocp_console_embed_domain }}"
 
-- name: Wait for IngressController to be ready
+- name: Wait for router rollout to complete
   kubernetes.core.k8s_info:
-    api_version: operator.openshift.io/v1
-    kind: IngressController
-    name: default
-    namespace: openshift-ingress-operator
-  register: r_ingress
+    api_version: apps/v1
+    kind: Deployment
+    name: router-default
+    namespace: openshift-ingress
+  register: r_router
   until:
-    - r_ingress.resources[0].status.availableReplicas is defined
-    - r_ingress.resources[0].status.availableReplicas == r_ingress.resources[0].spec.replicas
+    - r_router.resources | length > 0
+    - r_router.resources[0].status.updatedReplicas is defined
+    - r_router.resources[0].status.availableReplicas is defined
+    - r_router.resources[0].status.updatedReplicas == r_router.resources[0].spec.replicas
+    - r_router.resources[0].status.availableReplicas == r_router.resources[0].spec.replicas
+    - (r_router.resources[0].status.unavailableReplicas | default(0)) == 0
   retries: "{{ ocp_console_embed_router_wait_retries }}"
   delay: "{{ ocp_console_embed_router_wait_delay }}"
 
-- name: Get Service CA certificate
+- name: Wait for Service CA certificate in openshift-authentication
   kubernetes.core.k8s_info:
     api_version: v1
     kind: ConfigMap
     name: v4-0-config-system-service-ca
     namespace: openshift-authentication
   register: r_service_ca
+  until:
+    - r_service_ca.resources | length > 0
+    - r_service_ca.resources[0].data['service-ca.crt'] is defined
+  retries: "{{ ocp_console_embed_service_ca_wait_retries }}"
+  delay: "{{ ocp_console_embed_service_ca_wait_delay }}"
 
 - name: Patch OAuth Route to use reencrypt TLS
   kubernetes.core.k8s:
@@ -78,4 +168,16 @@
           termination: reencrypt
           insecureEdgeTerminationPolicy: Redirect
           destinationCACertificate: "{{ r_service_ca.resources[0].data['service-ca.crt'] }}"
-  when: r_service_ca.resources | length > 0
+
+- name: Verify OAuth route stays reencrypt after auth operator reconciliation
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: oauth-openshift
+    namespace: openshift-authentication
+  register: r_oauth_route
+  until:
+    - r_oauth_route.resources | length > 0
+    - r_oauth_route.resources[0].spec.tls.termination == 'reencrypt'
+  retries: 12
+  delay: 5
