@@ -72,7 +72,7 @@
     env:
       WAIT_FOR_GIT_CLONER: "false"
       ANTORA_SITE_FILE: "{{ showroom_antora_playbook_to_use }}"
-      ANTORA_ENABLE_DEV_MODE: "{{ showroom_antora_enable_dev_mode }}"
+      ANTORA_ENABLE_DEV_MODE: "{{ (showroom_antora_enable_dev_mode | bool or showroom_enable_dev_mode | bool) | string | lower }}"
     detach: false                               # ensure completion of render before moving on
     working_dir: "/files"
     volumes:
