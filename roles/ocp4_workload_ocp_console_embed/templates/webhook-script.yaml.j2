@@ -7,8 +7,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ ocp_console_embed_name }}-webhook-script
-  namespace: {{ ocp_console_embed_namespace }}
+  name: "{{ ocp_console_embed_name }}-webhook-script"
+  namespace: "{{ ocp_console_embed_namespace }}"
 data:
   webhook.py: |
 {{ lookup('file', 'webhook.py') | indent(4, first=True) }}

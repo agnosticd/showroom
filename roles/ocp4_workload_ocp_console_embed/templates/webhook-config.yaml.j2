@@ -9,7 +9,7 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: {{ ocp_console_embed_name }}-oauth-route
+  name: "{{ ocp_console_embed_name }}-oauth-route"
   annotations:
     service.beta.openshift.io/inject-cabundle: "true"
 webhooks:
@@ -36,7 +36,7 @@ webhooks:
         kubernetes.io/metadata.name: openshift-authentication
     clientConfig:
       service:
-        name: {{ ocp_console_embed_name }}-webhook
-        namespace: {{ ocp_console_embed_namespace }}
+        name: "{{ ocp_console_embed_name }}-webhook"
+        namespace: "{{ ocp_console_embed_namespace }}"
         path: /mutate
         port: 443

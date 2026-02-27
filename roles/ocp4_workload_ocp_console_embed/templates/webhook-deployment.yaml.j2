@@ -4,22 +4,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ ocp_console_embed_name }}-webhook
-  namespace: {{ ocp_console_embed_namespace }}
+  name: "{{ ocp_console_embed_name }}-webhook"
+  namespace: "{{ ocp_console_embed_namespace }}"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ ocp_console_embed_name }}-webhook
+      app: "{{ ocp_console_embed_name }}-webhook"
   template:
     metadata:
       labels:
-        app: {{ ocp_console_embed_name }}-webhook
+        app: "{{ ocp_console_embed_name }}-webhook"
     spec:
-      serviceAccountName: {{ ocp_console_embed_name }}
+      serviceAccountName: "{{ ocp_console_embed_name }}"
       containers:
         - name: webhook
-          image: {{ ocp_console_embed_image }}
+          image: "{{ ocp_console_embed_image }}"
           command:
             - python3
             - -u
@@ -61,10 +61,10 @@ spec:
       volumes:
         - name: tls
           secret:
-            secretName: {{ ocp_console_embed_name }}-webhook-tls
+            secretName: "{{ ocp_console_embed_name }}-webhook-tls"
         - name: service-ca
           configMap:
-            name: {{ ocp_console_embed_name }}-service-ca
+            name: "{{ ocp_console_embed_name }}-service-ca"
         - name: script
           configMap:
-            name: {{ ocp_console_embed_name }}-webhook-script
+            name: "{{ ocp_console_embed_name }}-webhook-script"
