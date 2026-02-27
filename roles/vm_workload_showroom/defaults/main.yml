@@ -51,8 +51,13 @@ showroom_content_antora_playbook: default-site.yml
 
 # Override ui-config.yml for the content container (JSON or YAML string, empty = use repo default)
 showroom_content_ui_config: ""
-# Enable Antora dev-mode extension (adds attribute pages and unlisted pages to nav)
-showroom_antora_enable_dev_mode: "false"
+
+# Master toggle: enable dev mode for all showroom containers (antora, and future content containers)
+showroom_enable_dev_mode: false
+
+# Enable Antora dev-mode extension (adds attribute pages and unlisted pages to nav).
+# Also enabled when showroom_enable_dev_mode is true.
+showroom_antora_enable_dev_mode: false
 
 showroom_primary_path: ""    # this is the postfix to the URL where the UI is available
 showroom_ui: zero-touch               # rhdev (RH Developer old UI) and zero-touch are options, extensible
