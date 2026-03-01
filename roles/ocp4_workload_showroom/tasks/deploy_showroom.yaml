@@ -74,6 +74,9 @@
             cpu: "{{ ocp4_workload_showroom_novnc_limits_cpu }}"
             memory: "{{ ocp4_workload_showroom_novnc_limits_memory }}"
   register: r_helm_templates
+  retries: 5
+  delay: 30
+  until: r_helm_templates is not failed
 
 - name: Deploy rendered manifests to OpenShift
   kubernetes.core.k8s:
