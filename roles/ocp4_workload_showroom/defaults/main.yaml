@@ -11,7 +11,7 @@ ocp4_workload_showroom_content_git_repo: https://github.com/rhpds/showroom_templ
 ocp4_workload_showroom_content_git_repo_ref: main
 
 # Which Antora Playbook to use in the content repo
-ocp4_workload_showroom_content_antora_playbook: default-site.yml
+ocp4_workload_showroom_content_antora_playbook: site.yml
 
 # Which terminal to deploy:
 # - wetty: deploy the wetty terminal image. You can then set
