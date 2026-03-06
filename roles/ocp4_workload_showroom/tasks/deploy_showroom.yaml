@@ -33,7 +33,12 @@
       guid: "{{ guid }}"
       user: "{{ _showroom_user | default('') }}"
       deployer:
-        domain: "{{ openshift_cluster_ingress_domain | default(sandbox_openshift_apps_domain, true) | default(showroom_openshift_apps_domain, true) | default('', true) }}"
+        domain: >-
+          {{ openshift_cluster_ingress_domain
+             | default(sandbox_openshift_ingress_domain, true)
+             | default(sandbox_openshift_apps_domain, true)
+             | default(showroom_openshift_apps_domain, true)
+             | default('', true) }}
       terminal:
         setup: "{{ (true if ocp4_workload_showroom_terminal_type == 'showroom' else false) | bool | string | lower }}"
         image: "{{ ocp4_workload_showroom_terminal_image }}"
