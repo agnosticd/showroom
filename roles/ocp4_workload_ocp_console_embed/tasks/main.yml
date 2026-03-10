@@ -104,6 +104,72 @@
   retries: "{{ ocp_console_embed_service_ca_wait_retries }}"
   delay: "{{ ocp_console_embed_service_ca_wait_delay }}"
 
+- name: Get current router Deployment
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: router-default
+    namespace: openshift-ingress
+  register: r_router_pre
+
+- name: Get worker nodes
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Node
+    label_selectors:
+      - node-role.kubernetes.io/worker
+  register: r_worker_nodes
+
+# On clusters where the control plane has been cordoned (e.g. SNO scaled
+# with worker VMs), the ingress operator may have set more router replicas
+# than there are schedulable nodes.  Because the router uses hostNetwork,
+# only one pod can run per node.  A rolling update with maxSurge=0 will
+# deadlock when it cannot schedule the replacement pod.
+- name: Count schedulable worker nodes
+  vars:
+    _total: "{{ r_worker_nodes.resources | length | int }}"
+    _cordoned: "{{ r_worker_nodes.resources | map(attribute='spec') | selectattr('unschedulable', 'defined') | selectattr('unschedulable', 'equalto', true) | list | length }}"
+  ansible.builtin.set_fact:
+    _ocp_console_embed_schedulable_workers: "{{ (_total | int) - (_cordoned | int) }}"
+
+- name: Scale IngressController replicas to match schedulable nodes
+  kubernetes.core.k8s:
+    api_version: operator.openshift.io/v1
+    kind: IngressController
+    name: default
+    namespace: openshift-ingress-operator
+    state: present
+    definition:
+      spec:
+        replicas: "{{ _ocp_console_embed_schedulable_workers | int }}"
+  when:
+    - r_router_pre.resources | length > 0
+    - (_ocp_console_embed_schedulable_workers | int) > 0
+    - (r_router_pre.resources[0].spec.replicas | default(0) | int)
+      > (_ocp_console_embed_schedulable_workers | int)
+
+- name: Wait for router to stabilize after replica adjustment
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: router-default
+    namespace: openshift-ingress
+  register: r_router_scaled
+  until:
+    - r_router_scaled.resources | length > 0
+    - r_router_scaled.resources[0].status.updatedReplicas is defined
+    - r_router_scaled.resources[0].status.availableReplicas is defined
+    - r_router_scaled.resources[0].status.updatedReplicas == r_router_scaled.resources[0].spec.replicas
+    - r_router_scaled.resources[0].status.availableReplicas == r_router_scaled.resources[0].spec.replicas
+    - (r_router_scaled.resources[0].status.unavailableReplicas | default(0)) == 0
+  retries: "{{ ocp_console_embed_router_wait_retries }}"
+  delay: "{{ ocp_console_embed_router_wait_delay }}"
+  when:
+    - r_router_pre.resources | length > 0
+    - (_ocp_console_embed_schedulable_workers | int) > 0
+    - (r_router_pre.resources[0].spec.replicas | default(0) | int)
+      > (_ocp_console_embed_schedulable_workers | int)
+
 - name: Patch IngressController to remove X-Frame-Options and set CSP
   kubernetes.core.k8s:
     api_version: operator.openshift.io/v1
