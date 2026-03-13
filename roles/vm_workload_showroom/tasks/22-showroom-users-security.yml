@@ -98,7 +98,7 @@
     state: restarted
 
 - name: Enable tmux if desired for better ssh UX
-  when: showroom_ttys_enable_tmux
+  when: showroom_ttys_enable_tmux | bool
   block:
 
     - name: Insert the showroom-tmux script for tty ssh sessions etc
