@@ -24,6 +24,9 @@ spec:
             - python3
             - -u
             - /webhook/webhook.py
+          env:
+            - name: WATCH_TIMEOUT
+              value: "{{ ocp_console_embed_watch_timeout }}"
           ports:
             - containerPort: 8443
               protocol: TCP
