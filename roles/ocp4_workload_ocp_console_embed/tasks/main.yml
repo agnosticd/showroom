@@ -26,16 +26,26 @@
 # Deploy resources that trigger async service CA operator provisioning:
 #   - Service annotation -> TLS Secret
 #   - ConfigMap annotation -> CA bundle injection
+- name: Deploy RBAC for route reconciliation
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ __ocp_console_embed_rbac }}"
+  loop: "{{ lookup('template', 'rbac.yaml.j2') | from_yaml_all | list }}"
+  loop_control:
+    loop_var: __ocp_console_embed_rbac
+
 - name: Deploy webhook pre-requisite resources
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('template', item) }}"
+    definition: "{{ lookup('template', __ocp_console_embed_template) }}"
     namespace: "{{ ocp_console_embed_namespace }}"
   loop:
     - serviceaccount.yaml.j2
     - webhook-script.yaml.j2
     - webhook-cabundle.yaml.j2
     - webhook-service.yaml.j2
+  loop_control:
+    loop_var: __ocp_console_embed_template
 
 - name: Wait for TLS Secret to be provisioned by service CA operator
   kubernetes.core.k8s_info:
@@ -149,21 +159,9 @@
       > (_ocp_console_embed_schedulable_workers | int)
 
 - name: Wait for router to stabilize after replica adjustment
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    name: router-default
-    namespace: openshift-ingress
-  register: r_router_scaled
-  until:
-    - r_router_scaled.resources | length > 0
-    - r_router_scaled.resources[0].status.updatedReplicas is defined
-    - r_router_scaled.resources[0].status.availableReplicas is defined
-    - r_router_scaled.resources[0].status.updatedReplicas == r_router_scaled.resources[0].spec.replicas
-    - r_router_scaled.resources[0].status.availableReplicas == r_router_scaled.resources[0].spec.replicas
-    - (r_router_scaled.resources[0].status.unavailableReplicas | default(0)) == 0
-  retries: "{{ ocp_console_embed_router_wait_retries }}"
-  delay: "{{ ocp_console_embed_router_wait_delay }}"
+  ansible.builtin.include_tasks: wait-router-rollout.yml
+  vars:
+    _ocp_console_embed_wait_reason: replica adjustment
   when:
     - r_router_pre.resources | length > 0
     - (_ocp_console_embed_schedulable_workers | int) > 0
@@ -192,21 +190,9 @@
                     value: "frame-ancestors 'self' https://*.{{ ocp_console_embed_domain }}"
 
 - name: Wait for router rollout to complete
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    name: router-default
-    namespace: openshift-ingress
-  register: r_router
-  until:
-    - r_router.resources | length > 0
-    - r_router.resources[0].status.updatedReplicas is defined
-    - r_router.resources[0].status.availableReplicas is defined
-    - r_router.resources[0].status.updatedReplicas == r_router.resources[0].spec.replicas
-    - r_router.resources[0].status.availableReplicas == r_router.resources[0].spec.replicas
-    - (r_router.resources[0].status.unavailableReplicas | default(0)) == 0
-  retries: "{{ ocp_console_embed_router_wait_retries }}"
-  delay: "{{ ocp_console_embed_router_wait_delay }}"
+  ansible.builtin.include_tasks: wait-router-rollout.yml
+  vars:
+    _ocp_console_embed_wait_reason: IngressController patch
 
 - name: Wait for Service CA certificate in openshift-authentication
   kubernetes.core.k8s_info:
@@ -245,5 +231,5 @@
   until:
     - r_oauth_route.resources | length > 0
     - r_oauth_route.resources[0].spec.tls.termination == 'reencrypt'
-  retries: 12
-  delay: 5
+  retries: "{{ ocp_console_embed_verify_retries }}"
+  delay: "{{ ocp_console_embed_verify_delay }}"
