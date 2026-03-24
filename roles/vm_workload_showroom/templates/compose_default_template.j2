@@ -15,6 +15,14 @@ services:
 
 {% endfor %}
 
+{% if showroom_nookbag_sidecar_enable | default(true) | bool %}
+{% macro fake_indent_op() %}
+{% include 'service_nookbag_sidecar/service_nookbag_sidecar.j2' ignore missing %}
+{% endmacro %}
+  {{ fake_indent_op() | indent(2) }}
+
+{% endif %}
+
 {% if showroom_ansible_runner_api %}
 {% macro fake_indent_op() %}
 {% include 'ansible_runner_api_service/ansible_runner_api_service.j2' ignore missing %}

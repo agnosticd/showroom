@@ -33,7 +33,7 @@ ocp4_workload_showroom_content_image: quay.io/rhpds/showroom-content:v1.4.1
 ocp4_workload_showroom_content_ui_config: ""
 
 # Antora builder image used in the init container
-ocp4_workload_showroom_antora_image: quay.io/rhpds/antora:v1.2.0
+ocp4_workload_showroom_antora_image: quay.io/rhpds/antora:v1.2.1
 
 # Master toggle: enable dev mode for all showroom containers (antora, and future content containers)
 ocp4_workload_showroom_enable_dev_mode: false
