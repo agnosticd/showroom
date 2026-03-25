@@ -27,13 +27,11 @@ ocp4_workload_showroom_terminal_requests_memory: 256Mi
 ocp4_workload_showroom_terminal_limits_cpu: 500m
 ocp4_workload_showroom_terminal_limits_memory: 1Gi
 
-ocp4_workload_showroom_content_image: quay.io/rhpds/showroom-content:v1.4.1
-
 # Override ui-config.yml for the content container (JSON or YAML string, empty = use repo default)
 ocp4_workload_showroom_content_ui_config: ""
 
-# Antora builder image used in the init container
-ocp4_workload_showroom_antora_image: quay.io/rhpds/antora:v1.2.1
+# Override the Antora UI bundle URL (empty = use the default from site.yml)
+ocp4_workload_showroom_content_antora_ui_bundle_url: ""
 
 # Master toggle: enable dev mode for all showroom containers (antora, and future content containers)
 ocp4_workload_showroom_enable_dev_mode: false
@@ -77,7 +75,7 @@ ocp4_workload_showroom_deployer_chart_name: showroom-single-pod
 # Available versions are at https://github.com/rhpds/showroom-deployer/releases
 ocp4_workload_showroom_deployer_chart_version: "2.1.*"
 
-ocp4_workload_showroom_zero_touch_bundle: "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.3.1/nookbag-v0.3.1.zip"
+ocp4_workload_showroom_zero_touch_bundle: "https://github.com/rhpds/nookbag/releases/download/nookbag-v0.3.2/nookbag-v0.3.2.zip"
 ocp4_workload_showroom_zero_touch_ui_enabled: true
 
 # Enable passthrough of agnosticd_passthrough_user_data to individual users
