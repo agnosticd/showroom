@@ -23,11 +23,11 @@
       {%- if showroom_content_antora_playbook == "site.yml" -%}
         {%- if site_yml_stat is defined and site_yml_stat.stat.exists -%}
           site.yml
-        {%- elif default_site_yml_stat is defined and default_site_yml_stat.stat.exists -%}
+      {%- elif default_site_yml_stat is defined and default_site_yml_stat.stat.exists -%}
           default-site.yml
-        {%- else -%}
+      {%- else -%}
           site.yml
-        {%- endif -%}
+      {%- endif -%}
       {%- else -%}
         {{ showroom_content_antora_playbook }}
       {%- endif -%}
@@ -62,8 +62,9 @@
   containers.podman.podman_container:
     name: antora-builder
     state: absent
+  become: true
   become_user: "{{ showroom_user }}"
-  ignore_errors: true
+  failed_when: false
 
 - name: Render asciidoc via antora container using a custom site.yml
   containers.podman.podman_container:
@@ -74,14 +75,14 @@
       ANTORA_SITE_FILE: "{{ showroom_antora_playbook_to_use }}"
       ANTORA_ENABLE_DEV_MODE: "{{ (showroom_antora_enable_dev_mode | bool or showroom_enable_dev_mode | bool) | string | lower }}"
       ANTORA_UI_BUNDLE_URL: "{{ showroom_antora_ui_bundle_url }}"
-    detach: false                               # ensure completion of render before moving on
+    detach: false
     working_dir: "/files"
     volumes:
       - "{{ showroom_user_content_dir }}:/files:z,U"
       - "{{ showroom_user_build_dir }}:/output:z,U"
+  become: true
   become_user: "{{ showroom_user }}"
   register: r_podman_run_antora
-  vars:
   tags:
     - showroom-render
 

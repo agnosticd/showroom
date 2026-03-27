@@ -4,16 +4,6 @@ galaxy_info:
   company: Red Hat
   license: Apache-2.0
   min_ansible_version: "2.14"
-  platforms:
-    - name: EL
-      versions:
-        - all
-    - name: Fedora
-      versions:
-        - all
-    - name: Openshift
-      versions:
-        - all
   galaxy_tags:
     - openshift
     - console

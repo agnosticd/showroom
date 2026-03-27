@@ -22,7 +22,7 @@
   vars:
     acmejsonfile: "{{ showroom_user_orchestration_dir }}/acme.json"
     outdir: "{{ showroom_user_orchestration_dir }}"
-  ignore_errors: true
+  failed_when: false
 
 - name: Enable and Start showroom service
   ansible.builtin.service:

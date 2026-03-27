@@ -15,6 +15,7 @@
     state: directory
     owner: "{{ showroom_user | default('showroom') }}"
     group: "{{ showroom_user_group | default('showroom') }}"
+    mode: "u=rwx,g=rx,o=rx"
   loop: "{{ showroom_work_dirs }}"
   loop_control:
     loop_var: __showroom_work_dir
@@ -74,4 +75,5 @@
   containers.podman.podman_network:
     name: "{{ showroom_podman_network | default('showroom_network') }}"
     state: present
+  become: true
   become_user: "{{ showroom_user }}"
