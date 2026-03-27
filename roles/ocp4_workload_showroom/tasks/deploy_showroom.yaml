@@ -29,6 +29,8 @@
         enableDevMode: "{{ (ocp4_workload_showroom_antora_enable_dev_mode | bool or ocp4_workload_showroom_enable_dev_mode | bool) | string | lower }}"
         zero_touch_bundle: "{{ ocp4_workload_showroom_zero_touch_bundle }}"
         zero_touch_ui_enabled: "{{ ocp4_workload_showroom_zero_touch_ui_enabled | string | lower }}"
+      runtime_automation:
+        image: "{{ ocp4_workload_showroom_runtime_automation_image | default(omit) }}"
       antora:
         image: "{{ ocp4_workload_showroom_antora_image | default(omit) }}"
       guid: "{{ guid }}"
