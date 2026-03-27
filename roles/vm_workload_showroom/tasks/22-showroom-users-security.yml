@@ -40,6 +40,7 @@
             path: "{{ showroom_user_home_dir }}/.ssh/id_ed25519"
             type: ed25519
             comment: "{{ showroom_user }}@localhost.com"
+          become: true
           become_user: "{{ showroom_user }}"
           register: r_ssh_key
 

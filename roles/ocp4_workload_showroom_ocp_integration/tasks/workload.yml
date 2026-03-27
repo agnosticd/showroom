@@ -1,6 +1,6 @@
 ---
 - name: Resolve OpenShift API URL for ocp4_workload_showroom_ocp_integration
-  set_fact:
+  ansible.builtin.set_fact:
     openshift_api_url: >-
       {{
         ocp4_workload_showroom_ocp_integration_openshift_api_url
@@ -8,7 +8,7 @@
       }}
 
 - name: Resolve OpenShift API token for ocp4_workload_showroom_ocp_integration
-  set_fact:
+  ansible.builtin.set_fact:
     openshift_api_key: >-
       {{
         ocp4_workload_showroom_ocp_integration_openshift_api_token
@@ -18,12 +18,13 @@
       }}
 
 - name: Login to OpenShift with token
-  command: >
+  ansible.builtin.command: >
     oc login {{ openshift_api_url if 'https' in openshift_api_url else 'https://' + openshift_api_url + ':6443' }}
     --token={{ openshift_api_key }}
     --insecure-skip-tls-verify
     --kubeconfig=/tmp/kubeconfig-demo
   register: oc_login
+  changed_when: oc_login.rc == 0
   retries: 10
   delay: 30
   until: oc_login.rc == 0
@@ -66,7 +67,7 @@
   until: service_ca_cm is not failed
 
 - name: Extract service-ca.crt content
-  set_fact:
+  ansible.builtin.set_fact:
     service_ca_crt: "{{ service_ca_cm.resources[0].data['service-ca.crt'] }}"
 
 - name: Wait for router deployment to be ready after IngressController change
