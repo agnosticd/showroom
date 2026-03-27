@@ -138,7 +138,12 @@
 - name: Count schedulable worker nodes
   vars:
     _total: "{{ r_worker_nodes.resources | length | int }}"
-    _cordoned: "{{ r_worker_nodes.resources | map(attribute='spec') | selectattr('unschedulable', 'defined') | selectattr('unschedulable', 'equalto', true) | list | length }}"
+    _cordoned: >-
+      {{ r_worker_nodes.resources
+         | map(attribute='spec')
+         | selectattr('unschedulable', 'defined')
+         | selectattr('unschedulable', 'equalto', true)
+         | list | length }}
   ansible.builtin.set_fact:
     _ocp_console_embed_schedulable_workers: "{{ (_total | int) - (_cordoned | int) }}"
 

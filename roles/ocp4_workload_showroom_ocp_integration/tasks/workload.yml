@@ -79,13 +79,13 @@
   retries: 40
   delay: 15
   until:
-    - router_deployment.resources | length > 0
-    - router_deployment.resources[0].status.observedGeneration is defined
-    - router_deployment.resources[0].status.observedGeneration == router_deployment.resources[0].metadata.generation
-    - router_deployment.resources[0].status.updatedReplicas is defined
-    - router_deployment.resources[0].status.updatedReplicas == router_deployment.resources[0].spec.replicas
-    - router_deployment.resources[0].status.readyReplicas is defined
-    - router_deployment.resources[0].status.readyReplicas == router_deployment.resources[0].spec.replicas
+  - router_deployment.resources | length > 0
+  - router_deployment.resources[0].status.observedGeneration is defined
+  - router_deployment.resources[0].status.observedGeneration == router_deployment.resources[0].metadata.generation
+  - router_deployment.resources[0].status.updatedReplicas is defined
+  - router_deployment.resources[0].status.updatedReplicas == router_deployment.resources[0].spec.replicas
+  - router_deployment.resources[0].status.readyReplicas is defined
+  - router_deployment.resources[0].status.readyReplicas == router_deployment.resources[0].spec.replicas
 
 - name: Get oauth URL
   kubernetes.core.k8s_info:
@@ -155,6 +155,6 @@
   retries: 15
   delay: 20
   until:
-    - console_response.status is defined
-    - console_response.status == 200
-    - "'x_frame_options' not in console_response"
+  - console_response.status is defined
+  - console_response.status == 200
+  - "'x_frame_options' not in console_response"
