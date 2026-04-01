@@ -56,6 +56,21 @@
         }, recursive=True)
       }}
 
+- name: Auto-populate OpenShift cluster info into _showroom_user_data when not already set
+  when:
+  - openshift_cluster_ingress_domain is defined
+  - _showroom_user_data.openshift_cluster_ingress_domain is not defined
+  ansible.builtin.set_fact:
+    _showroom_user_data: >-
+      {{
+        _showroom_user_data | combine(
+          {
+            'openshift_cluster_ingress_domain': openshift_cluster_ingress_domain,
+            'openshift_console_url': openshift_console_url
+              | default('https://console-openshift-console.' ~ openshift_cluster_ingress_domain),
+          }, recursive=True)
+      }}
+
 - name: Build global (non-user) slice of user_data
   ansible.builtin.set_fact:
     _showroom_global_data: >-
