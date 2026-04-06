@@ -47,7 +47,7 @@ ocp4_workload_showroom_antora_enable_dev_mode: false
 ocp4_workload_showroom_terminal_image: quay.io/rhpds/openshift-showroom-terminal-ocp:latest
 
 # Wetty Image
-ocp4_workload_showroom_wetty_image: quay.io/rhpds/wetty:v2.5
+ocp4_workload_showroom_wetty_image: quay.io/rhpds/wetty:v3.0
 
 # Log into bastion automatically from wetty
 # applies to both primary and seconary wetty terminals
