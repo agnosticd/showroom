@@ -82,6 +82,7 @@ ocp4_workload_showroom_zero_touch_ui_enabled: true
 # Only applies when ocp4_workload_showroom_deployer_chart_name: zerotouch
 # Default (empty): chart uses quay.io/rhpds/zerotouch-automation:v1.2.0
 # Override example: quay.io/rhpds/zt-runner:v1.0.0
+ocp4_workload_showroom_runtime_automation_enable: false
 ocp4_workload_showroom_runtime_automation_image: ""
 
 # Enable passthrough of agnosticd_passthrough_user_data to individual users
