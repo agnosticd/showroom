@@ -34,7 +34,7 @@
         zero_touch_ui_enabled: "{{ ocp4_workload_showroom_zero_touch_ui_enabled | string | lower }}"
       runtime_automation:
         setup: "{{ (true if ocp4_workload_showroom_runtime_automation_enable | bool else false) | bool | string | lower }}"
-        image: "{{ ocp4_workload_showroom_runtime_automation_image | default(omit) }}"
+        image: "{{ ocp4_workload_showroom_runtime_automation_image | default(omit, true) }}"
         environment_variables: "{{ ocp4_workload_showroom_runtime_automation_environment_variables }}"
       antora:
         image: "{{ ocp4_workload_showroom_antora_image | default(omit) }}"
