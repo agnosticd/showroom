@@ -9,7 +9,7 @@
 
 - name: Set showroom_user_data fact from lookup - global value (before passthrough)
   ansible.builtin.set_fact:
-    _showroom_user_data: "{{ _showroom_user_data | combine(lookup('agnosticd.core.agnosticd_user_data', '*')) }}"
+    _showroom_user_data: "{{ _showroom_user_data | combine(lookup('agnosticd.showroom.agnosticd_user_data', '*')) }}"
 
 - name: Determine number of users for passthrough
   when:
@@ -23,7 +23,7 @@
   - agnosticd_passthrough_user_data is defined
   - ocp4_workload_showroom_passthrough_user_data | default(false) | bool
   - _passthrough_num_users | int > 0
-  agnosticd.core.agnosticd_user_info:
+  agnosticd.showroom.agnosticd_user_info:
     data: "{{ agnosticd_passthrough_user_data | default('', true) }}"
     user: "user{{ n }}"
   loop: "{{ range(1, _passthrough_num_users | int + 1) | list }}"
@@ -32,7 +32,7 @@
 
 - name: Set showroom_user_data fact from lookup - global value (after passthrough)
   ansible.builtin.set_fact:
-    _showroom_user_data: "{{ _showroom_user_data | combine(lookup('agnosticd.core.agnosticd_user_data', '*')) }}"
+    _showroom_user_data: "{{ _showroom_user_data | combine(lookup('agnosticd.showroom.agnosticd_user_data', '*')) }}"
 
 - name: Auto-populate bastion connection info into _showroom_user_data when not already set
   when:
