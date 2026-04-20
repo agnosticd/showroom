@@ -23,9 +23,9 @@ services:
 
 {% endif %}
 
-{% if showroom_ansible_runner_api %}
+{% if showroom_runtime_automation_enable | default(false) | bool or showroom_ansible_runner_api | default(false) | bool %}
 {% macro fake_indent_op() %}
-{% include 'ansible_runner_api_service/ansible_runner_api_service.j2' ignore missing %}
+{% include 'service_runtime_automation/service_runtime_automation.j2' ignore missing %}
 {% endmacro %}
   {{ fake_indent_op() | indent(2) }}
 
