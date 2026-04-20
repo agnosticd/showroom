@@ -22,9 +22,6 @@ showroom_codeserver_image_tag: latest
 showroom_tty_image: quay.io/rhpds/wetty
 showroom_tty_image_tag: v2.5
 
-showroom_ansible_runner_image: quay.io/makirill/ansible-runtime-api
-showroom_ansible_runner_image_tag: latest
-
 showroom_nookbag_sidecar_image: quay.io/rhpds/nookbag-sidecar
 showroom_nookbag_sidecar_image_tag: v1.0.2
 
@@ -39,6 +36,16 @@ showroom_nookbag_sidecar_enable: true
 showroom_nookbag_sidecar_port: 8090
 showroom_nookbag_sidecar_base_url: "http://reverse-proxy:80"
 showroom_nookbag_sidecar_nookbag_base: ""
+
+# ----------------------------------------------------------------------
+# Runtime automation runner (zt-runner)
+# Adds a /stream/ endpoint for SSE-based automation events.
+# ----------------------------------------------------------------------
+showroom_runtime_automation_enable: false
+showroom_runtime_automation_image: quay.io/rhpds/zt-runner
+showroom_runtime_automation_image_tag: v2.5.0
+showroom_runtime_automation_port: 8501
+showroom_runtime_automation_environment_variables: {}
 
 # ----------------------------------------------------------------------
 # Parasol service settings
@@ -113,13 +120,6 @@ showroom_enable_root_ssh: false
   # showroom_default_ssh_user:
 showroom_lab_users:
   - "{{ showroom_default_ssh_user | default('rhel') }}"
-
-# ----------------------------------------------------------------------
-# Enable the showroom_ansible_runner_api?
-# ----------------------------------------------------------------------
-showroom_ansible_runner_api: false
-showroom_ansible_runner_api_port: 8501
-showroom_ansible_runner_path: "/runner"
 
 # ----------------------------------------------------------------------
 # Default template
