@@ -19,25 +19,30 @@
     release_namespace: "{{ _showroom_namespace }}"
     release_values:
       content:
-        image: "{{ ocp4_workload_showroom_content_image | default(omit) }}"
+        image: "{{ ocp4_workload_showroom_content_image | default(omit, true) }}"
         user_data: "{{ _showroom_vars | to_nice_yaml(width=1337, default_style='\"') }}"
         repoUrl: "{{ ocp4_workload_showroom_content_git_repo }}"
         repoRef: "{{ ocp4_workload_showroom_content_git_repo_ref }}"
         antoraPlaybook: "{{ ocp4_workload_showroom_content_antora_playbook }}"
         uiConfig: "{{ ocp4_workload_showroom_content_ui_config }}"
         antoraUiBundleUrl: "{{ ocp4_workload_showroom_content_antora_ui_bundle_url }}"
+        antoraNavbarLogo: "{{ ocp4_workload_showroom_content_antora_navbar_logo }}"
         enableDevMode: >-
           {{ (ocp4_workload_showroom_antora_enable_dev_mode | bool
               or ocp4_workload_showroom_enable_dev_mode | bool)
              | string | lower }}
         zero_touch_bundle: "{{ ocp4_workload_showroom_zero_touch_bundle }}"
-        zero_touch_ui_enabled: "{{ ocp4_workload_showroom_zero_touch_ui_enabled | string | lower }}"
+      git_cloner:
+        image: "{{ ocp4_workload_showroom_git_cloner_image | default(omit, true) }}"
+      antora:
+        image: "{{ ocp4_workload_showroom_antora_image | default(omit, true) }}"
+      nookbag_sidecar:
+        setup: "{{ (true if ocp4_workload_showroom_nookbag_sidecar_enable | bool else false) | bool | string | lower }}"
+        image: "{{ ocp4_workload_showroom_nookbag_sidecar_image | default(omit, true) }}"
       runtime_automation:
         setup: "{{ (true if ocp4_workload_showroom_runtime_automation_enable | bool else false) | bool | string | lower }}"
         image: "{{ ocp4_workload_showroom_runtime_automation_image | default(omit, true) }}"
         environment_variables: "{{ ocp4_workload_showroom_runtime_automation_environment_variables }}"
-      antora:
-        image: "{{ ocp4_workload_showroom_antora_image | default(omit) }}"
       guid: "{{ guid }}"
       user: "{{ _showroom_user | default('') }}"
       deployer:
@@ -78,7 +83,6 @@
         setup: "{{ (true if ocp4_workload_showroom_novnc_enable | bool else false) | bool | string | lower }}"
         image: "{{ ocp4_workload_showroom_novnc_image }}"
         vncServer: "{{ ocp4_workload_showroom_novnc_vnc_server_hostport }}"
-        password: "{{ ocp4_workload_showroom_novnc_vnc_server_password }}"
         resources:
           requests:
             cpu: "{{ ocp4_workload_showroom_novnc_requests_cpu }}"
