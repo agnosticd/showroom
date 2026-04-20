@@ -75,6 +75,7 @@
       ANTORA_SITE_FILE: "{{ showroom_antora_playbook_to_use }}"
       ANTORA_ENABLE_DEV_MODE: "{{ (showroom_antora_enable_dev_mode | bool or showroom_enable_dev_mode | bool) | string | lower }}"
       ANTORA_UI_BUNDLE_URL: "{{ showroom_antora_ui_bundle_url }}"
+      ANTORA_KEY_NAVBAR_LOGO: "{{ showroom_content_antora_navbar_logo }}"
     detach: false
     working_dir: "/files"
     volumes:
