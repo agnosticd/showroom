@@ -4,10 +4,10 @@
 {% set _runner_tag = showroom_runtime_automation_image_tag | default(showroom_ansible_runner_image_tag, true) | default('v2.5.0') %}
 {% set _runner_port = showroom_runtime_automation_port | default(8501) %}
 {% set _runner_env = showroom_runtime_automation_environment_variables | default({}) %}
-runner:
+ansible-runner-api:
   image: {{ _runner_image }}:{{ _runner_tag }}
-  container_name: runner
-  hostname: runner
+  container_name: ansible-runner-api
+  hostname: ansible-runner-api
   restart: always
   environment:
     PORT: "{{ _runner_port }}"
@@ -18,6 +18,7 @@ runner:
 {% endfor %}
   volumes:
     - "{{ showroom_user_content_dir }}:/showroom/repo:z,ro"
+    - "{{ showroom_user_home_dir }}/.ssh:/app/.ssh"
   labels:
     - "traefik.enable=true"
     - "traefik.http.services.runner.loadbalancer.server.port={{ _runner_port }}"
