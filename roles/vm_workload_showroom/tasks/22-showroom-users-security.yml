@@ -103,7 +103,9 @@
         podman unshare chown -R 1001:1001 {{ showroom_user_home_dir }}/.ssh
       become: true
       become_user: "{{ showroom_user | default('showroom') }}"
-      when: showroom_ansible_runner_api | default(false) | bool
+      when: >-
+        (showroom_runtime_automation_enable | default(false) | bool)
+        or (showroom_ansible_runner_api | default(false) | bool)
 
 - name: Restart sshd to pickup all/any changes
   ansible.builtin.systemd:
