@@ -93,17 +93,18 @@
         group: "{{ showroom_user_group }}"
         mode: u=rw,g-rwx,o-rwx
 
-- name: Remap .ssh ownership for ansible-runner container (rootless podman uid mapping)
-  # The ansible-runner-api container runs as uid=1001 (default) inside rootless podman.
-  # In the showroom user's user namespace, uid=1001 maps to a different host uid
-  # (typically showroom's first subuid + 1000).
-  # podman unshare runs chown inside that namespace so the resulting host uid
-  # matches what the container process sees as uid=1001 — giving it read access.
-  # Runs regardless of showroom_ssh_method (password or sshkey).
-  ansible.builtin.shell: >
-    podman unshare chown -R 1001:1001 {{ showroom_user_home_dir }}/.ssh
+- name: Remap .ssh ownership for runtime automation container
+  # Rootless podman maps the showroom host user (uid {{ showroom_user_uid }}) to
+  # uid 0 inside the container namespace.  The zt-runner image runs as uid 1001,
+  # which maps to a different host subuid.  Without this chown the container
+  # process cannot read the mounted .ssh directory (mode 700, owner uid 0).
+  # `podman unshare` executes the chown inside the user namespace so the host
+  # file ownership is set to the subuid that the container sees as 1001.
+  ansible.builtin.command:
+    cmd: podman unshare chown -R 1001:1001 {{ showroom_user_home_dir }}/.ssh
   become: true
   become_user: "{{ showroom_user | default('showroom') }}"
+  changed_when: true
   when: >-
     (showroom_runtime_automation_enable | default(false) | bool)
     or (showroom_ansible_runner_api | default(false) | bool)
