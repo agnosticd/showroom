@@ -20,7 +20,7 @@ showroom_codeserver_image: quay.io/redhat-gpte/showroom/code-server
 showroom_codeserver_image_tag: latest
 
 showroom_tty_image: quay.io/rhpds/wetty
-showroom_tty_image_tag: v2.5
+showroom_tty_image_tag: v2.7.4
 
 showroom_nookbag_sidecar_image: quay.io/rhpds/nookbag-sidecar
 showroom_nookbag_sidecar_image_tag: v1.0.2
