@@ -89,7 +89,7 @@
     namespace: "{{ ocp_console_embed_namespace }}"
   register: r_webhook_deploy
   until:
-    - r_webhook_deploy.resources | length > 0
+    - r_webhook_deploy.resources | default([]) | length > 0
     - r_webhook_deploy.resources[0].status.readyReplicas is defined
     - r_webhook_deploy.resources[0].status.readyReplicas >= 1
   retries: "{{ ocp_console_embed_webhook_wait_retries }}"
